@@ -8,7 +8,13 @@ import { autocompletion, completionKeymap, type CompletionContext } from '@codem
 import { tags } from '@lezer/highlight';
 
 const model = defineModel<string>({ required: true });
-const props = defineProps<{ placeholder?: string; fields?: string[] }>();
+const props = defineProps<{
+    placeholder?: string;
+    fields?: string[];
+    /// Replaces the record-filter completions; governance rules complete against the topic
+    /// context and declared variables instead.
+    completions?: { label: string; type: string; detail?: string }[];
+}>();
 
 const host = ref<HTMLElement | null>(null);
 let view: EditorView | null = null;
@@ -21,7 +27,7 @@ const celLanguage = StreamLanguage.define<{ }>({
         if (stream.eatSpace()) return null;
         if (stream.match(/^"(?:[^"\\]|\\.)*"?/) || stream.match(/^'(?:[^'\\]|\\.)*'?/)) return 'string';
         if (stream.match(/^\d+(\.\d+)?/)) return 'number';
-        if (stream.match(/^(true|false|null)\b/)) return 'keyword';
+        if (stream.match(/^(true|false|null|in)\b/)) return 'keyword';
         if (stream.match(/^(int|double|string|bool|size|matches|startsWith|endsWith|contains|has)\b/)) return 'function';
         if (stream.match(/^(headers|key|value|topic|timestamp)\b/)) return 'variableName';
         if (stream.match(/^(&&|\|\||==|!=|>=|<=|[<>!+\-*/%])/)) return 'operator';
@@ -45,7 +51,7 @@ function complete(context: CompletionContext) {
     const before = context.matchBefore(/[\w.\[\]"]*/);
     if (!before && !context.explicit) return null;
 
-    const options = [
+    const options = props.completions ?? [
         { label: 'headers["region"]', type: 'variable', detail: 'record header' },
         { label: 'headers["recordName"]', type: 'variable', detail: 'subject record name' },
         { label: 'key', type: 'variable', detail: 'record key, as a string' },

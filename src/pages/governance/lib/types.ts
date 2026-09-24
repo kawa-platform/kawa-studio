@@ -29,7 +29,6 @@ export interface GovernanceRule {
     /// CEL; false refuses the request with 403, the rule name and the message.
     expression: string;
     message: string;
-    description: string;
 }
 
 export interface GovernanceExemption {

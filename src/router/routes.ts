@@ -6,7 +6,6 @@ export const routes: RouteRecordRaw[] = [
     { path: '/topics/new', name: 'topic-new', component: () => import('../pages/topics/NewTopicPage.vue'), meta: { crumb: 'New topic' } },
     { path: '/topics/:name/edit', name: 'topic-edit', component: () => import('../pages/topics/NewTopicPage.vue'), meta: { crumb: 'Edit topic' } },
     { path: '/clusters', name: 'clusters', component: () => import('../pages/clusters/ClustersPage.vue'), meta: { crumb: 'Clusters' } },
-    /// Backwards compatibility: creating topics now lives under /topics/new.
     { path: '/virtualization/new', redirect: '/clusters/new' },
     { path: '/publish', name: 'publish', component: () => import('../pages/publish/PublishPage.vue'), meta: { crumb: 'Publish' } },
     { path: '/clients', name: 'clients', component: () => import('../pages/clients/ClientsPage.vue'), meta: { crumb: 'Clients' } },
@@ -14,7 +13,6 @@ export const routes: RouteRecordRaw[] = [
     { path: '/clients/:name', name: 'client-details', component: () => import('../pages/clients/ClientDetailsPage.vue'), meta: { crumb: 'Client details' } },
     { path: '/clients/:name/edit', name: 'client-edit', component: () => import('../pages/clients/ClientEditorPage.vue'), meta: { crumb: 'Edit client' } },
     { path: '/clients/access', name: 'clients-access', component: () => import('../pages/clients/EffectiveAccessPage.vue'), meta: { crumb: 'Effective access' } },
-    /// Backwards compatibility: the clients section moved from /users to /clients.
     { path: '/users', redirect: '/clients' },
     { path: '/users/new', redirect: '/clients/new' },
     { path: '/users/access', redirect: '/clients/access' },
@@ -29,4 +27,11 @@ export const routes: RouteRecordRaw[] = [
     { path: '/rbac/groups/:name/', name: 'rbac-group-details', component: () => import('../pages/rbac/groups/GroupDetailsPage.vue'), meta: { crumb: 'Group details' } },
     { path: '/rbac/groups/:name/edit', name: 'rbac-group-edit', component: () => import('../pages/rbac/groups/GroupEditorPage.vue'), meta: { crumb: 'Edit group' } },
     { path: '/rbac/permissions', redirect: '/clients/access' },
+    { path: '/governance', name: 'governance', component: () => import('../pages/governance/GovernancePage.vue'), meta: { crumb: 'Governance' } },
+    { path: '/governance/rules/new', name: 'governance-rule-new', component: () => import('../pages/governance/RuleEditorPage.vue'), meta: { crumb: 'New rule' } },
+    { path: '/governance/rules/:id/edit', name: 'governance-rule-edit', component: () => import('../pages/governance/RuleEditorPage.vue'), meta: { crumb: 'Edit rule' } },
+    { path: '/governance/variables/new', name: 'governance-variable-new', component: () => import('../pages/governance/VariableEditorPage.vue'), meta: { crumb: 'New variable' } },
+    { path: '/governance/variables/:id/edit', name: 'governance-variable-edit', component: () => import('../pages/governance/VariableEditorPage.vue'), meta: { crumb: 'Edit variable' } },
+    { path: '/governance/exemptions/new', name: 'governance-exemption-new', component: () => import('../pages/governance/ExemptionEditorPage.vue'), meta: { crumb: 'New exemption' } },
+    { path: '/governance/exemptions/:id/edit', name: 'governance-exemption-edit', component: () => import('../pages/governance/ExemptionEditorPage.vue'), meta: { crumb: 'Edit exemption' } },
 ];

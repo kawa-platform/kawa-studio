@@ -149,6 +149,7 @@ const outcome: Record<RuleOutcome, { icon: string; cls: string; label: string }>
 .body { padding: 22px 26px 60px; }
 section { margin-bottom: 24px; }
 h6 { margin: 0 0 8px; color: var(--brand-text); }
+.field { margin-bottom: 14px; }
 .field > label { display: block; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .note { font-size: 12.5px; color: var(--muted); margin: 4px 0 0; }

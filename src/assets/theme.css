@@ -38,6 +38,7 @@ html[data-theme='dark'] {
     --color-accent-2-600: #f87171;
     --color-accent-2-700: #f87171;
     --color-accent-2-800: #020b18;
+    --code-pink: #e18bb7;
     --on-accent: #020b18;
     --chrome: #031426;
     --chrome-line: #19344b;
@@ -85,6 +86,7 @@ html[data-theme='light'] {
     --color-accent-2-600: #dc2626;
     --color-accent-2-700: #b91c1c;
     --color-accent-2-800: #ffffff;
+    --code-pink: #b0457c;
     --on-accent: #ffffff;
     --chrome: #f8fafc;
     --chrome-line: #cbd5e1;
@@ -291,3 +293,21 @@ textarea.input, input.input.mono, select.input.mono { font-family: var(--mono); 
 ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
 ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--color-text) 26%, transparent); border-radius: 8px; }
 ::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--color-text) 40%, transparent); }
+
+/* Underlined view tabs (Clients, Governance). */
+.view-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--chrome-line); margin-bottom: 16px; }
+.tab {
+    padding: 8px 14px;
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: color-mix(in srgb, var(--color-text) 72%, transparent);
+    text-decoration: none;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    cursor: pointer;
+}
+.tab:hover { color: var(--color-text); }
+.tab-on { color: var(--color-text); border-bottom-color: var(--brand); font-weight: 600; }
