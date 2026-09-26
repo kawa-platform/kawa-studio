@@ -153,8 +153,12 @@ const submitPhysical = async (): Promise<void> => {
 <template>
     <div class="wrap">
         <div class="head">
-            <h1>{{ isEdit ? 'Edit topic' : 'New topic' }}</h1>
-            <p class="lede">
+            <h1 v-if="!isEdit">New topic</h1>
+            <h1 v-else class="edit-head">
+                <span class="edit-kicker">Edit topic</span>
+                <span class="edit-name mono">{{ name || originalName }}</span>
+            </h1>
+            <p v-if="!isEdit" class="lede">
                 A topic is either virtual or physical. A virtual topic is a config entry, not a Kafka
                 object: the gateway resolves the virtual name to the physical topic on every request. A
                 physical topic exists on the Kafka cluster itself.
@@ -308,6 +312,18 @@ const submitPhysical = async (): Promise<void> => {
 <style scoped>
 .wrap { max-width: 640px; }
 .head { margin-bottom: 22px; }
+/* Edit head is a masthead pair: a small kicker over the topic name as the subject line.
+   The name is the thing the operator came to see, so it takes the h1's full size. */
+.edit-head { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.edit-kicker {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+.edit-name { color: var(--brand-text); overflow-wrap: anywhere; }
 .tabs { margin-bottom: 30px; }
 .seg-list { display: flex; }
 section { margin-bottom: 30px; }
@@ -328,7 +344,6 @@ h2 {
 }
 .field { margin-bottom: 18px; }
 .hint { margin: 7px 0 0; }
-.hint code { font-family: var(--mono); color: var(--muted); }
 .field-error { font-size: 11.5px; color: var(--error); margin: 7px 0 0; }
 .check { display: flex; align-items: center; gap: 9px; font-size: 13px; margin-bottom: 14px; }
 .check-hint { margin: -7px 0 0 24px; }

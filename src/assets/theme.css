@@ -123,7 +123,12 @@ a:hover { color: var(--color-accent-400); }
 .lede { margin: 0; font-size: 14.5px; color: var(--muted); max-width: 74ch; }
 
 /* Form-field helper text. Brighter than --faint for legibility; margins stay local per form. */
-.hint { font-size: 12.5px; color: var(--muted); max-width: 62ch; }
+.hint { font-size: 13.5px; color: var(--muted); max-width: 62ch; }
+/* Inline code inside a hint keeps the app mono. This lives here rather than in a page's
+   scoped block because scoped rules only carry the parent's data attribute: a page cannot
+   reach the hint markup of a child component, and the code would fall back to the UA
+   monospace — a visibly different face from the hint text around it. */
+.hint code { font-family: var(--mono); }
 
 .btn { font-family: var(--font-body); font-weight: 500; letter-spacing: 0; white-space: nowrap; flex: none; }
 .btn-primary { color: var(--on-accent); }

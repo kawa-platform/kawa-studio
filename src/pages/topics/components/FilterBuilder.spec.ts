@@ -157,4 +157,58 @@ describe('FilterBuilder', () => {
 
         expect(wrapper.find('#vf-value-format').exists()).toBe(false);
     });
+
+    it('documents every CEL binding in the hint list', () => {
+        const { wrapper } = mountBuilder({ clause: celClause });
+
+        const items = wrapper.findAll('.hint li');
+        expect(items.map((item) => item.find('code').text())).toEqual([
+            'value',
+            'headers',
+            'key',
+            'timestamp',
+        ]);
+    });
+
+    it('loads an example expression into the clause when clicked', async () => {
+        const { wrapper, state } = mountBuilder({ clause: { type: 'cel', expression: '' } });
+
+        /// Matched by text, not index: the list is curated and its order is not a contract.
+        const chip = wrapper
+            .findAll('.example')
+            .find((button) => button.text() === 'int(value.amount) > 100');
+        await chip!.trigger('click');
+
+        expect(state.filters.clause).toEqual({ type: 'cel', expression: 'int(value.amount) > 100' });
+    });
+
+    /// A chip the gateway cannot evaluate is worse than no chip, so every identifier in the
+    /// examples must be a binding or one of the functions CelEditor completes: int, double,
+    /// string, bool, size, matches, startsWith, endsWith, contains, has.
+    it('only offers examples built from the bindings and functions the gateway exposes', () => {
+        const { wrapper } = mountBuilder({ clause: celClause });
+
+        const known = new Set([
+            'value', 'headers', 'key', 'timestamp',
+            'int', 'double', 'string', 'bool', 'size',
+            'matches', 'startsWith', 'endsWith', 'contains', 'has',
+        ]);
+
+        for (const chip of wrapper.findAll('.example')) {
+            const text = chip.text();
+            // String literals hold data, not vocabulary; neither do field names, which only
+            // ever appear after a dot on a binding.
+            const code = text.replace(/"[^"]*"/g, '""');
+            for (const [, dot, word = ''] of code.matchAll(/(\.)?([A-Za-z_][A-Za-z0-9_]*)/g)) {
+                if (dot) continue;
+                expect(known.has(word), `${word} in "${text}"`).toBe(true);
+            }
+        }
+    });
+
+    it('hides the examples for a header filter', () => {
+        const { wrapper } = mountBuilder({ clause: headerClause });
+
+        expect(wrapper.find('.examples').exists()).toBe(false);
+    });
 });

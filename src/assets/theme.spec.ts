@@ -9,3 +9,11 @@ describe('primary buttons', () => {
         expect(themeCss).toMatch(/\.btn-primary:hover\s*\{[^}]*color:\s*var\(--on-accent\)/);
     });
 });
+
+describe('hint helper text', () => {
+    /// Global, not scoped: a page's scoped block cannot reach a hint rendered by a child
+    /// component, which is where the code spans actually live (FilterBuilder).
+    it('keeps inline code on the app mono instead of the UA monospace', () => {
+        expect(themeCss).toMatch(/\.hint code\s*\{[^}]*font-family:\s*var\(--mono\)/);
+    });
+});
