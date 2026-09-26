@@ -157,7 +157,7 @@ const save = async (): Promise<void> => {
 
 .editor { max-width: 680px; }
 .group-name { max-width: 420px; margin-bottom: 24px; }
-.hint { font-size: 11.5px; color: var(--faint); margin: 5px 0 0; }
+.hint { margin: 5px 0 0; }
 
 .field + .field { margin-top: 22px; }
 .field > label { display: block; font-size: 12px; margin-bottom: 6px; color: var(--muted); }

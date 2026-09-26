@@ -141,7 +141,7 @@ const save = async (): Promise<void> => {
 
 .editor { max-width: 640px; }
 .client-name { max-width: 420px; margin-bottom: 24px; }
-.hint { font-size: 11.5px; color: var(--faint); margin: 5px 0 0; max-width: 62ch; }
+.hint { margin: 5px 0 0; }
 .actions { display: flex; gap: 10px; margin-top: 26px; }
 
 .form-error { font-size: 12.5px; color: var(--color-accent-2-700); margin-top: 6px; }

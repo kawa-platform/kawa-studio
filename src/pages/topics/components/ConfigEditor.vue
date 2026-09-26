@@ -125,5 +125,5 @@ const entries = computed(() => Object.entries(config.value));
 .add .field { flex: 1; margin-bottom: 0; }
 .btn-add { flex: none; }
 .field-error { font-size: 11.5px; color: var(--error); margin: 7px 0 0; }
-.hint { font-size: 11.5px; color: var(--faint); margin: 7px 0 0; }
+.hint { margin: 7px 0 0; }
 </style>

@@ -122,6 +122,9 @@ a:hover { color: var(--color-accent-400); }
 .faint { color: var(--faint); }
 .lede { margin: 0; font-size: 14.5px; color: var(--muted); max-width: 74ch; }
 
+/* Form-field helper text. Brighter than --faint for legibility; margins stay local per form. */
+.hint { font-size: 12.5px; color: var(--muted); max-width: 62ch; }
+
 .btn { font-family: var(--font-body); font-weight: 500; letter-spacing: 0; white-space: nowrap; flex: none; }
 .btn-primary { color: var(--on-accent); }
 .btn-primary:hover { background: var(--color-accent-400); color: var(--on-accent); }

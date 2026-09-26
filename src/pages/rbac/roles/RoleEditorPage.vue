@@ -151,7 +151,7 @@ const save = async (): Promise<void> => {
 
 .editor { max-width: 860px; }
 .role-name { max-width: 420px; margin-bottom: 24px; }
-.hint { font-size: 11.5px; color: var(--faint); margin: 5px 0 0; }
+.hint { margin: 5px 0 0; }
 
 .section h2 { font-size: 18px; margin: 0 0 14px; }
 

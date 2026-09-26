@@ -152,10 +152,7 @@ h2 {
 }
 
 .hint {
-  font-size: 11.5px;
-  color: var(--faint);
   margin: 7px 0 0;
-  max-width: 62ch;
 }
 
 .section-hint { margin: -4px 0 13px; }
