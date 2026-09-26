@@ -277,7 +277,7 @@ const reset = (): void => {
     flex-wrap: wrap;
 }
 
-.resolve .mono { font-size: 11.5px; }
+.resolve .mono { font-size: 12.5px; }
 
 .gate {
     margin: 18px 0 0;
@@ -328,7 +328,7 @@ const reset = (): void => {
 
 .preview-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
 .preview-head h6 { margin: 0; color: var(--faint); }
-.preview-head .mono { font-size: 11px; margin-left: auto; }
+.preview-head .mono { font-size: 12px; margin-left: auto; }
 .preview { max-height: 340px; margin-bottom: 14px; white-space: pre; }
 .preview-actions { display: flex; gap: 8px; align-items: center; }
 .footnote { font-size: 11.5px; color: var(--faint); margin: 14px 0 0; }

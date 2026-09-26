@@ -93,7 +93,7 @@ const onToggle = (event: MouseEvent, name: string): void => {
 .tree tbody tr[data-parent] { background: color-mix(in srgb, var(--color-accent) 6%, transparent); }
 .tree tbody tr[data-parent] td:first-child { box-shadow: inset 2px 0 0 var(--brand); }
 .name { display: flex; align-items: center; gap: 7px; }
-.topic-name { font-size: 12.5px; }
+.topic-name { font-size: 13.5px; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 .mapping { display: flex; align-items: center; gap: 8px; }
 .actions { text-align: right; white-space: nowrap; }

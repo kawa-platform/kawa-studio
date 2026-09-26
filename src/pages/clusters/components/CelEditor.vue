@@ -102,7 +102,7 @@ onBeforeUnmount(() => view?.destroy());
     border-radius: var(--radius-md);
     background: var(--color-surface);
 }
-.editor :deep(.cm-editor) { font-family: var(--mono); font-size: 12.5px; }
+.editor :deep(.cm-editor) { font-family: var(--mono); font-size: 13.5px; }
 .editor :deep(.cm-editor.cm-focused) { outline: none; }
 .editor :deep(.cm-content) { padding: 11px 12px; min-height: 60px; }
 .editor :deep(.cm-placeholder) { color: var(--faint); }

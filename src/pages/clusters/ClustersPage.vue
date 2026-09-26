@@ -154,7 +154,7 @@ h2 { font-family: var(--font-heading); font-size: 15px; margin: 30px 0 10px; }
 .stat .value { font-family: var(--font-heading); font-size: 25px; line-height: 1; }
 .stat .label { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
 .error { color: var(--error); }
-:deep(.expr) { font-family: var(--mono); font-size: 12px; color: var(--brand-text); }
+:deep(.expr) { font-family: var(--mono); font-size: 13px; color: var(--brand-text); }
 :deep(.strong) { font-weight: 600; }
 :deep(.faint) { color: var(--faint); font-style: italic; }
 </style>
