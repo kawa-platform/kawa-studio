@@ -3,10 +3,21 @@ import type { TopicFilter } from '@/api/types';
 
 const props = defineProps<{ filter?: TopicFilter | null; long?: boolean }>();
 
+const SHORT: Partial<Record<TopicFilter['kind'], string>> = {
+    cel: 'CEL',
+    header: 'header-equals',
+    headerContains: 'header-contains',
+    headerStartsWith: 'header-starts-with',
+    headerMatches: 'header-matches',
+};
+
+const LONG: Partial<Record<TopicFilter['kind'], string>> = { ...SHORT, cel: 'CEL filter' };
+
 const label = (): string => {
     if (!props.filter) return props.long ? 'no filter' : '';
-    if (props.long) return props.filter.kind === 'cel' ? 'CEL filter' : 'header-equals';
-    return props.filter.kind === 'cel' ? 'CEL' : 'header';
+    return props.long
+        ? (LONG[props.filter.kind] ?? props.filter.kind)
+        : (SHORT[props.filter.kind] ?? props.filter.kind);
 };
 </script>
 

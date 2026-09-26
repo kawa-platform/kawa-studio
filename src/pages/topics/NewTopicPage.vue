@@ -2,16 +2,18 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
-import { isInternalTopic } from '@/api/types';
+import { isInternalTopic, type ValueFormat } from '@/api/types';
 import { usePatchVirtualTopic, usePhysicalTopics, useTopics, useUpsertVirtualTopic, useCreatePhysicalTopic } from './queries';
 import { useClusters } from '../clusters/queries';
-import CelEditor from '../clusters/components/CelEditor.vue';
 import ConfigEditor from './components/ConfigEditor.vue';
+import FilterBuilder from './components/FilterBuilder.vue';
 import SearchSelect, { type SelectItem } from '../publish/components/SearchSelect.vue';
 import {
     buildVirtualTopicConfig,
+    buildVirtualTopicPatch,
+    isFilterComplete,
     virtualTopicFormFromTopic,
-    type VirtualTopicFilterType,
+    type VirtualTopicFilterForm,
 } from './lib/virtualTopicConfig';
 
 type TopicKind = 'virtual' | 'physical';
@@ -35,10 +37,8 @@ const existing = computed(() => topics.value?.find((topic) =>
 const name = ref('');
 const target = ref('');
 const exposePhysicalTopic = ref(false);
-const filterType = ref<VirtualTopicFilterType>('none');
-const filterHeader = ref('');
-const filterValue = ref('');
-const expression = ref('');
+const filters = ref<VirtualTopicFilterForm>({ clause: null });
+const valueFormat = ref<ValueFormat | null>(null);
 const serverError = ref<string | null>(null);
 
 watch(existing, (topic) => {
@@ -47,10 +47,8 @@ watch(existing, (topic) => {
     name.value = form.name;
     target.value = form.topic;
     exposePhysicalTopic.value = form.exposePhysicalTopic;
-    filterType.value = form.filterType;
-    filterHeader.value = form.header;
-    filterValue.value = form.value;
-    expression.value = form.expression;
+    valueFormat.value = form.valueFormat;
+    filters.value = form.filters;
 }, { immediate: true });
 
 const taken = computed(() =>
@@ -64,15 +62,6 @@ const targetItems = computed<SelectItem[]>(() =>
             hint: `${t.partitions} partitions`,
         })));
 
-const filterTypeItems: SelectItem[] = [
-    { value: 'none', label: 'No filter' },
-    { value: 'headerEquals', label: 'Header equals' },
-    { value: 'headerContains', label: 'Header contains' },
-    { value: 'headerStartsWith', label: 'Header starts with' },
-    { value: 'headerMatches', label: 'Header matches (regex)' },
-    { value: 'cel', label: 'CEL expression' },
-];
-
 /// The one validation that fires client-side; everything else is the server's answer.
 const nameError = computed(() => {
     const value = name.value.trim();
@@ -80,25 +69,7 @@ const nameError = computed(() => {
     return taken.value.has(value) && value !== originalName.value ? 'That name is already taken.' : null;
 });
 
-const headerFilterTypes: ReadonlyArray<VirtualTopicFilterType> =
-    ['headerEquals', 'headerContains', 'headerStartsWith', 'headerMatches'];
-const isHeaderFilter = (t: VirtualTopicFilterType): boolean => headerFilterTypes.includes(t);
-
-const headerHint = computed(() =>
-    ({
-        headerEquals: 'Only records whose named header exactly equals this value are delivered.',
-        headerContains: 'Only records whose named header value contains this substring are delivered.',
-        headerStartsWith: 'Only records whose named header value starts with this prefix are delivered.',
-        headerMatches: 'Only records whose named header value fully matches this regex (anchored) are delivered.',
-    })[filterType.value as Exclude<VirtualTopicFilterType, 'none' | 'cel'>]);
-
-const filterComplete = computed(() => {
-    if (isHeaderFilter(filterType.value)) {
-        return !!filterHeader.value.trim() && !!filterValue.value.trim();
-    }
-    if (filterType.value === 'cel') return !!expression.value.trim();
-    return true;
-});
+const filterComplete = computed(() => isFilterComplete(filters.value.clause));
 
 const canSubmit = computed(() =>
     !!name.value.trim()
@@ -112,23 +83,21 @@ const canSubmit = computed(() =>
 const submit = async (): Promise<void> => {
     serverError.value = null;
     try {
-        const config = buildVirtualTopicConfig({
+        const form = {
             topic: target.value,
             exposePhysicalTopic: exposePhysicalTopic.value,
-            filterType: filterType.value,
-            header: filterHeader.value,
-            value: filterValue.value,
-            expression: expression.value,
-        });
+            valueFormat: valueFormat.value,
+            filters: filters.value,
+        };
         if (isEdit.value) {
             await patch.mutateAsync({
                 currentName: originalName.value,
-                request: { name: name.value.trim(), ...config },
+                request: buildVirtualTopicPatch(form, name.value.trim()),
             });
         } else {
             await upsert.mutateAsync({
                 name: name.value.trim(),
-                config,
+                config: buildVirtualTopicConfig(form),
             });
         }
         await router.push({ name: 'topics' });
@@ -249,51 +218,10 @@ const submitPhysical = async (): Promise<void> => {
 
             <section>
                 <h2>2 · Read filter</h2>
-                <div class="field">
-                    <SearchSelect
-                        v-model="filterType"
-                        label="Filter type"
-                        placeholder="Select a filter type…"
-                        :items="filterTypeItems"
-                        empty-text="No filter type matches that name."
-                    />
-                </div>
-
-                <template v-if="isHeaderFilter(filterType)">
-                    <div class="row">
-                        <div class="field">
-                            <label for="vt-filter-header">Header</label>
-                            <input
-                                id="vt-filter-header"
-                                v-model="filterHeader"
-                                class="input mono"
-                                placeholder="Header name"
-                                autocomplete="off"
-                            >
-                        </div>
-                        <div class="field">
-                            <label for="vt-filter-value">Value</label>
-                            <input
-                                id="vt-filter-value"
-                                v-model="filterValue"
-                                class="input mono"
-                                :placeholder="filterType === 'headerMatches' ? 'Regular expression' : 'Exact matching value'"
-                                autocomplete="off"
-                            >
-                        </div>
-                    </div>
-                    <p class="hint">{{ headerHint }}</p>
-                </template>
-
-                <template v-else-if="filterType === 'cel'">
-                    <CelEditor v-model="expression" :placeholder="'headers[\'region\'] == \'eu\''" />
-                    <p class="hint">
-                        Evaluated per record against <code>headers</code>, <code>key</code>, <code>value</code> and <code>timestamp</code>.
-                        Records that do not match are not delivered — they stay in the physical topic.
-                        Press <kbd>Ctrl</kbd>+<kbd>Space</kbd> for completions.
-                    </p>
-                </template>
-                <p v-else class="hint">Every record is delivered through the virtual topic.</p>
+                <FilterBuilder
+                    v-model="filters"
+                    v-model:value-format="valueFormat"
+                />
             </section>
 
             <div class="actions">
