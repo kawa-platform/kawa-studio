@@ -30,7 +30,7 @@ watch(collapsed, (next) => {
     <aside class="sidebar" :class="{ collapsed }">
         <div class="brand">
             <div class="brand-row">
-                <span class="mark">k</span>
+                <span class="mark" aria-label="Kawa">川</span>
                 <span v-if="!collapsed" class="wordmark">kawa</span>
                 <button
                     class="collapse"
@@ -118,14 +118,14 @@ watch(collapsed, (next) => {
 }
 
 .mark {
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
     flex: none;
     border-radius: 3px;
     background: var(--brand);
     color: var(--on-brand);
     font-weight: 600;
-    font-size: 13px;
+    font-size: 17px;
     display: grid;
     place-items: center;
 }

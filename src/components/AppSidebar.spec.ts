@@ -19,6 +19,19 @@ describe('AppSidebar', () => {
         vi.unstubAllGlobals();
     });
 
+    it('shows the 川 brand mark with an accessible label', () => {
+        const wrapper = mount(AppSidebar, {
+            global: {
+                plugins: [createPinia(), router],
+            },
+        });
+
+        const mark = wrapper.get('.mark');
+
+        expect(mark.text()).toBe('川');
+        expect(mark.attributes('aria-label')).toBe('Kawa');
+    });
+
     it.each([
         ['/clients/alice', '/clients'],
         ['/rbac/groups/producers', '/rbac/groups'],
