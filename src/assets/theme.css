@@ -180,6 +180,9 @@ textarea.input, input.input.mono, select.input.mono { font-family: var(--mono); 
 .table tbody tr:hover { background: var(--row-hover); }
 .table-scroll { overflow-x: auto; max-width: 100%; }
 
+/* Identifier cells (topic/cluster/client names, principals). Slightly above body for legibility. */
+.cell { font-size: 13.5px; }
+
 .pre {
     font-size: 13px;
     line-height: 1.65;

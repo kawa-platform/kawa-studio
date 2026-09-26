@@ -208,7 +208,6 @@ const deleteBody = computed(() => {
 .filters { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
 .filters .input { width: 205px; font-size: 13px; }
 .count { font-size: 12px; margin-left: auto; }
-.cell { font-size: 12.5px; }
 .host { font-size: 12px; }
 .actions { text-align: right; }
 .actions .btn { font-size: 12.5px; }

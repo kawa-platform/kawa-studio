@@ -164,7 +164,6 @@ const confirmLabel = computed(() =>
 <style scoped>
 .head { display: flex; align-items: flex-end; gap: 24px; margin-bottom: 20px; }
 .head > div { margin-right: auto; }
-.cell { font-size: 12.5px; }
 .date { font-size: 12.5px; }
 .actions { text-align: right; }
 .actions > * + * { margin-left: 6px; }

@@ -174,7 +174,7 @@ const missingClients = computed(() =>
 .group-chips .tag i { font-size: 13px; }
 
 .section-title { font-size: 18px; margin: 24px 0 12px; }
-.cell { font-size: 12.5px; white-space: normal; }
+.cell { white-space: normal; }
 .bound-tag { margin-right: 4px; font-size: 10.5px; }
 
 .empty, .ok-note { padding: 20px; font-size: 13px; color: var(--muted); border: 1px dashed var(--chrome-line); border-radius: var(--radius-md); }

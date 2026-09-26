@@ -133,7 +133,6 @@ const dialogBody = computed(() =>
 <style scoped>
 .head { display: flex; align-items: flex-end; gap: 24px; margin-bottom: 20px; }
 .head > div { margin-right: auto; }
-.cell { font-size: 12.5px; }
 .strong { font-weight: 500; }
 .role-link { color: inherit; text-decoration: none; }
 .role-link:hover { text-decoration: underline; }
