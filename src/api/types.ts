@@ -1,5 +1,5 @@
 export type TopicType = 'virtual' | 'physical';
-export type FilterKind = 'cel' | 'header';
+export type FilterKind = 'cel' | 'header' | 'headerContains' | 'headerStartsWith' | 'headerMatches';
 export type ResourceType = 'topic' | 'group' | 'cluster';
 export type PermissionType = 'allow' | 'deny';
 export type FieldType = 'string' | 'uuid' | 'timestamp' | 'double' | 'int' | 'boolean' | 'enum';
@@ -40,6 +40,9 @@ export interface Topic {
     /// Virtual topics only.
     physicalTopic?: string;
     filter?: TopicFilter | null;
+    valueFormat?: PayloadFormatConfig | null;
+    /// Virtual topics only; absent from physical-topic summaries.
+    exposePhysicalTopic?: boolean;
     config?: Record<string, string>;
 }
 
@@ -134,6 +137,18 @@ export interface VirtualCluster {
     state: 'live' | 'next';
 }
 
+/// The decode format for a virtual topic's record values. Only JSON exists in the gateway:
+/// it decodes each payload so CEL content filters see the parsed document.
+export type ValueFormat = 'json';
+
+/// The wire representation of a record value encoding — the gateway's sealed `PayloadFormatConfig`.
+export interface PayloadFormatConfig {
+    type: 'json';
+}
+
+/// The single read filter of a virtual topic: one header test or one CEL expression. The
+/// kinds mirror the gateway's sealed `VirtualTopicFilterConfig` exactly; CEL is the only
+/// filter that inspects record values (decoded per `valueFormat`).
 export type VirtualTopicConfigFilter =
     | { type: 'headerEquals'; header: string; value: string }
     | { type: 'headerContains'; header: string; value: string }
@@ -144,6 +159,7 @@ export type VirtualTopicConfigFilter =
 export interface VirtualTopicConfig {
     topic: string;
     exposePhysicalTopic: boolean;
+    valueFormat?: PayloadFormatConfig;
     filter?: VirtualTopicConfigFilter;
 }
 
@@ -151,6 +167,7 @@ export interface VirtualTopicPatch {
     name?: string;
     topic?: string;
     exposePhysicalTopic?: boolean;
+    valueFormat?: PayloadFormatConfig | null;
     filter?: VirtualTopicConfigFilter | null;
 }
 

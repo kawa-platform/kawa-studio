@@ -110,7 +110,7 @@ export const httpApi: KawaApi = {
     patchVirtualTopic: (name, body: VirtualTopicPatch) =>
         adminRequest(`/topics/${encodeURIComponent(name)}`, {
             method: 'PATCH',
-            body: JSON.stringify({type: 'virtual', ...body}),
+            body: JSON.stringify(body),
         }),
     deleteVirtualTopic: (name) =>
         adminRequest<void>(`/topics/${encodeURIComponent(name)}`, {method: 'DELETE'}),

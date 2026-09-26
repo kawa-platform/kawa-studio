@@ -78,10 +78,11 @@ describe('auth clients', () => {
 describe('virtual topics', () => {
     const ADMIN = 'http://localhost:8080';
 
-    it('patches an existing virtual topic through the admin API', async () => {
+    it('patches an existing virtual topic through the admin API without a type discriminator', async () => {
         const request = {
             name: 'orders-eu',
             topic: 'orders-v2',
+            valueFormat: { type: 'json' as const },
             filter: { type: 'headerEquals' as const, header: 'region', value: 'eu' },
             exposePhysicalTopic: true,
         };
@@ -95,7 +96,27 @@ describe('virtual topics', () => {
             `${ADMIN}/topics/orders`,
             {
                 method: 'PATCH',
-                body: JSON.stringify({ type: 'virtual', ...request }),
+                // The admin deserializes PATCH bodies into VirtualTopicConfigPatch,
+                // which has no `type` field — sending one would 400.
+                body: JSON.stringify(request),
+                headers: { 'content-type': 'application/json' },
+            },
+        );
+    });
+
+    it('sends filter: null to clear a virtual topic filter on patch', async () => {
+        const request = { topic: 'orders-v2', filter: null, valueFormat: null };
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+            new Response(JSON.stringify(request), { status: 200 }),
+        );
+
+        await httpApi.patchVirtualTopic('orders', request);
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            `${ADMIN}/topics/orders`,
+            {
+                method: 'PATCH',
+                body: '{"topic":"orders-v2","filter":null,"valueFormat":null}',
                 headers: { 'content-type': 'application/json' },
             },
         );
@@ -105,7 +126,8 @@ describe('virtual topics', () => {
         const response = {
             topic: 'orders-v2',
             exposePhysicalTopic: false,
-            filter: { type: 'headerEquals' as const, header: 'region', value: 'eu' },
+            valueFormat: { type: 'json' as const },
+            filter: { type: 'headerMatches' as const, header: 'tenant', value: 'eu.*' },
         };
         const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
             new Response(JSON.stringify(response), {
