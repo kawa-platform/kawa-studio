@@ -98,66 +98,68 @@ const addCopyRow = (): void => {
         </div>
 
         <template v-for="(acl, index) in acls" :key="index">
-            <div class="row">
-                <select class="input kind" :value="acl.resource.type" @change="setKind(index, ($event.target as HTMLSelectElement).value as ResourceKind)">
-                    <option v-for="kind in kinds" :key="kind" :value="kind">{{ kindLabel(kind) }}</option>
-                </select>
+            <div class="acl">
+                <div class="row">
+                    <select class="input kind" :value="acl.resource.type" @change="setKind(index, ($event.target as HTMLSelectElement).value as ResourceKind)">
+                        <option v-for="kind in kinds" :key="kind" :value="kind">{{ kindLabel(kind) }}</option>
+                    </select>
 
-                <template v-if="acl.resource.type !== 'CLUSTER'">
-                    <input
-                        class="input mono pattern"
-                        :value="acl.resource.pattern ?? ''"
-                        placeholder="Name or prefix…"
-                        @input="setPattern(index, ($event.target as HTMLInputElement).value)"
-                    >
-                    <div class="seg pattern-type">
-                        <button
-                            v-for="mode in patternModes"
-                            :key="mode"
-                            type="button"
-                            class="seg-opt"
-                            :data-state="(acl.resource.patternType ?? 'LITERAL') === mode ? 'active' : 'inactive'"
-                            @click="setPatternType(index, mode)"
+                    <template v-if="acl.resource.type !== 'CLUSTER'">
+                        <input
+                            class="input mono pattern"
+                            :value="acl.resource.pattern ?? ''"
+                            placeholder="Name or prefix…"
+                            @input="setPattern(index, ($event.target as HTMLInputElement).value)"
                         >
-                            {{ mode === 'LITERAL' ? 'Exact' : 'Prefix' }}
-                        </button>
-                    </div>
-                </template>
-                <template v-else>
-                    <span class="note">Cluster-wide — no pattern</span>
-                </template>
+                        <div class="seg pattern-type">
+                            <button
+                                v-for="mode in patternModes"
+                                :key="mode"
+                                type="button"
+                                class="seg-opt"
+                                :data-state="(acl.resource.patternType ?? 'LITERAL') === mode ? 'active' : 'inactive'"
+                                @click="setPatternType(index, mode)"
+                            >
+                                {{ mode === 'LITERAL' ? 'Exact' : 'Prefix' }}
+                            </button>
+                        </div>
+                    </template>
+                    <span v-else class="note">Cluster-wide — no pattern</span>
 
-                <select
-                    class="input operation"
-                    :value="acl.operation"
-                    @change="setField(index, 'operation', ($event.target as HTMLSelectElement).value as AclOperation)"
-                >
-                    <option v-for="operation in operations" :key="operation" :value="operation">{{ operationLabel(operation) }}</option>
-                </select>
-
-                <div class="seg perm">
-                    <button
-                        v-for="permission in permissions"
-                        :key="permission"
-                        type="button"
-                        class="seg-opt"
-                        :data-state="(acl.permission ?? 'ALLOW') === permission ? 'active' : 'inactive'"
-                        @click="setField(index, 'permission', permission)"
-                    >
-                        {{ permission }}
+                    <button type="button" class="btn btn-ghost btn-icon remove" :aria-label="`Remove ACL ${index + 1}`" @click="removeRow(index)">
+                        <i class="ph-duotone ph-trash" />
                     </button>
                 </div>
 
-                <button type="button" class="btn btn-ghost btn-icon remove" :aria-label="`Remove ACL ${index + 1}`" @click="removeRow(index)">
-                    <i class="ph-duotone ph-trash" />
-                </button>
-            </div>
+                <div class="row verdict">
+                    <select
+                        class="input operation"
+                        :value="acl.operation"
+                        @change="setField(index, 'operation', ($event.target as HTMLSelectElement).value as AclOperation)"
+                    >
+                        <option v-for="operation in operations" :key="operation" :value="operation">{{ operationLabel(operation) }}</option>
+                    </select>
 
-            <div class="row-meta">
-                <span v-if="errorsFor(acl).length" class="errors">
-                    {{ errorsFor(acl).join(' · ') }}
-                </span>
-                <span v-else class="summary mono">{{ summaryFor(acl) }}</span>
+                    <div class="seg perm">
+                        <button
+                            v-for="permission in permissions"
+                            :key="permission"
+                            type="button"
+                            class="seg-opt"
+                            :data-state="(acl.permission ?? 'ALLOW') === permission ? 'active' : 'inactive'"
+                            @click="setField(index, 'permission', permission)"
+                        >
+                            {{ permission }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="row-meta">
+                    <span v-if="errorsFor(acl).length" class="errors">
+                        {{ errorsFor(acl).join(' · ') }}
+                    </span>
+                    <span v-else class="summary mono">{{ summaryFor(acl) }}</span>
+                </div>
             </div>
         </template>
 
@@ -179,7 +181,9 @@ const addCopyRow = (): void => {
 </template>
 
 <style scoped>
-.acl-editor { display: flex; flex-direction: column; gap: 8px; }
+/* An ACL reads as one statement — resource, then verdict — but at the form's 640px measure
+   that needs two lines. The first names the resource, the second settles allow/deny. */
+.acl-editor { display: flex; flex-direction: column; gap: 14px; }
 
 .empty {
     font-size: 13px;
@@ -189,13 +193,17 @@ const addCopyRow = (): void => {
     border-radius: var(--radius-md);
 }
 
+.acl { display: flex; flex-direction: column; gap: 7px; }
+
 .row {
     display: grid;
-    grid-template-columns: 148px minmax(140px, 1fr) 118px 172px 132px 36px;
+    grid-template-columns: 148px minmax(0, 1fr) auto 36px;
     gap: 8px;
     align-items: center;
 }
-.note { font-size: 12px; color: var(--faint); grid-column: span 2; }
+.verdict { grid-template-columns: minmax(0, 1fr) auto; }
+
+.note { grid-column: 2 / 4; font-size: 12px; color: var(--faint); }
 .pattern { min-width: 0; }
 .kind, .operation { min-height: 32px; }
 .remove { color: var(--faint); }
@@ -203,9 +211,9 @@ const addCopyRow = (): void => {
 
 .pattern-type .seg-opt, .perm .seg-opt { padding: 6px 8px; }
 
-.row-meta { margin: -2px 0 6px; }
-.summary { font-size: 11.5px; color: var(--muted); }
-.errors { font-size: 11.5px; color: var(--color-accent-2-700); }
+.row-meta { font-size: 11.5px; }
+.summary { color: var(--muted); }
+.errors { color: var(--color-accent-2-700); }
 
 .row-actions { display: flex; gap: 8px; }
 .add, .copy { font-size: 12.5px; }
