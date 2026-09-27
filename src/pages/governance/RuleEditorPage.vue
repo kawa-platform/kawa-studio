@@ -16,7 +16,14 @@ const ruleId = computed(() => route.params.id as string | undefined);
 const existing = computed(() => (ruleId.value ? store.doc.rules.find((r) => r.id === ruleId.value) ?? null : null));
 const isEdit = computed(() => !!ruleId.value);
 
-const blank = (): GovernanceRule => ({ id: 'r' + Date.now(), name: '', selector: 'true', expression: '', message: '' });
+const blank = (): GovernanceRule => ({
+  id: 'r' + Date.now(),
+  name: '',
+  selector: 'true',
+  expression: '',
+  message: '',
+  description: '',
+});
 const draft = ref<GovernanceRule>(existing.value ? { ...existing.value } : blank());
 
 const variables = computed(() => store.doc.variables);
@@ -35,8 +42,12 @@ const completions = computed(() => [
 
 const nameError = computed(() => {
     const name = draft.value.name.trim();
-    if (!name) return null;
-    if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) return 'Lowercase letters, digits and hyphens.';
+    if (!name) {
+      return null;
+    }
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) {
+      return 'Lowercase letters, digits and hyphens.';
+    }
     const taken = store.doc.rules.some((r) => r.name === name && r.id !== draft.value.id);
     return taken ? 'Another rule has this name.' : null;
 });
@@ -75,15 +86,20 @@ const submit = (): void => {
                 <h2>1 · Identity</h2>
                 <div class="field">
                     <label for="rule-name">Name</label>
-                    <input id="rule-name" v-model="draft.name" class="input mono" placeholder="partition-tier" autocomplete="off">
+                    <input id="rule-name" v-model="draft.name" class="input mono" placeholder="rule name" autocomplete="off">
                     <p v-if="nameError" class="field-error">{{ nameError }}</p>
                     <p v-else class="hint">Returned to the client when the rule refuses a request.</p>
                 </div>
                 <div class="field">
-                    <label for="rule-message">Message</label>
-                    <textarea id="rule-message" v-model="draft.message" class="input" rows="2" />
-                    <p class="hint">Returned to the client with the 403.</p>
+                    <label for="description-message">Description</label>
+                    <textarea id="description-message" v-model="draft.description" class="input" rows="2" />
+                    <p class="hint">Serves as documentation for this rule.</p>
                 </div>
+              <div class="field">
+                <label for="rule-message">Error Message</label>
+                <textarea id="rule-message" v-model="draft.message" class="input" rows="2" />
+                <p class="hint">Returned to the client with the 403.</p>
+              </div>
             </section>
 
             <section>
@@ -118,8 +134,6 @@ const submit = (): void => {
 </template>
 
 <style scoped>
-.hint code { font-family: var(--mono); color: var(--muted); }
 .check-ok { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--success); margin: 7px 0 0; }
-textarea.input { font-family: var(--font-body); font-size: 14px; resize: vertical; }
 kbd { font-family: var(--mono); font-size: 11px; padding: 0 4px; border: 1px solid var(--chrome-line); border-radius: 3px; }
 </style>
