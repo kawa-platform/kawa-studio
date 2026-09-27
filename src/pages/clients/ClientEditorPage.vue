@@ -66,59 +66,64 @@ const save = async (): Promise<void> => {
 </script>
 
 <template>
-    <div>
+    <div class="form">
         <div class="head">
-            <div>
-                <h1>Edit “{{ nameParam }}”</h1>
-                <p class="lede">
-                    The SASL mechanism the principal uses to authenticate. The username keys the config API, so a
-                    client is identified by name for its lifetime; the password is reset separately and never exposed
-                    here.
-                </p>
-            </div>
-            <RouterLink class="btn btn-secondary" to="/clients"><i class="ph-duotone ph-arrow-left" />Back</RouterLink>
+            <h1>Edit “{{ nameParam }}”</h1>
+            <p class="lede">
+                The SASL mechanism the principal uses to authenticate. The username keys the config API, so a
+                client is identified by name for its lifetime; the password is reset separately and never exposed
+                here.
+            </p>
         </div>
 
-        <p v-if="notFound" class="form-error">
+        <p v-if="notFound" class="error">
             Client “{{ nameParam }}” does not exist. <RouterLink to="/clients/new">Create a new client</RouterLink>
             instead.
         </p>
 
-        <p v-if="clients.error.value" class="form-error">{{ clients.error.value.message }}</p>
+        <p v-if="clients.error.value" class="error">{{ clients.error.value.message }}</p>
 
-        <form v-else-if="!notFound" class="editor" @submit.prevent="save">
-            <div class="field client-name">
-                <label for="client-name">Client name</label>
-                <input id="client-name" class="input mono" :value="nameParam" disabled>
-                <p class="hint">Renaming is not supported — the name keys the config API.</p>
-            </div>
+        <form v-else-if="!notFound" @submit.prevent="save">
+            <section>
+                <h2>1 · Identity</h2>
+                <div class="field">
+                    <label for="client-name">Client name</label>
+                    <input id="client-name" class="input mono" :value="nameParam" disabled>
+                    <p class="hint">Renaming is not supported — the name keys the config API.</p>
+                </div>
+            </section>
 
-            <div class="field">
-                <label for="mechanism">Mechanism</label>
-                <select id="mechanism" v-model="draft.mechanism" class="input">
-                    <option v-for="m in MECHANISMS" :key="m" :value="m">{{ m }}</option>
-                </select>
-                <p class="hint">The SASL mechanism the principal uses. SCRAM variants never put the password on the
-                    wire in the clear. Clients must reconnect to authenticate with the new mechanism.</p>
-            </div>
+            <section>
+                <h2>2 · Credentials</h2>
+                <div class="field">
+                    <label for="mechanism">Mechanism</label>
+                    <select id="mechanism" v-model="draft.mechanism" class="input">
+                        <option v-for="m in MECHANISMS" :key="m" :value="m">{{ m }}</option>
+                    </select>
+                    <p class="hint">The SASL mechanism the principal uses. SCRAM variants never put the password on the
+                        wire in the clear. Clients must reconnect to authenticate with the new mechanism.</p>
+                </div>
+            </section>
 
-            <div class="field">
-                <label>Groups</label>
-                <p class="hint">Choose the RBAC groups this client should belong to. Saving replaces its current group memberships.</p>
-                <p v-if="groups.isPending.value" class="hint">Loading groups…</p>
-                <p v-else-if="groups.error.value" class="form-error">Could not load groups: {{ groups.error.value.message }}</p>
-                <SuggestionInput
-                    v-else-if="groups.data.value?.length"
-                    v-model="draft.groups"
-                    :suggestions="groupSuggestions"
-                    placeholder="Add a group — e.g. producers"
-                    :allow-new="false"
-                />
-                <p v-else class="hint">No groups have been configured yet.</p>
-            </div>
+            <section>
+                <h2>3 · Groups</h2>
+                <div class="field">
+                    <label>Groups</label>
+                    <p class="hint">Choose the RBAC groups this client should belong to. Saving replaces its current group memberships.</p>
+                    <p v-if="groups.isPending.value" class="hint">Loading groups…</p>
+                    <p v-else-if="groups.error.value" class="field-error">Could not load groups: {{ groups.error.value.message }}</p>
+                    <SuggestionInput
+                        v-else-if="groups.data.value?.length"
+                        v-model="draft.groups"
+                        :suggestions="groupSuggestions"
+                        placeholder="Add a group — e.g. producers"
+                        :allow-new="false"
+                    />
+                    <p v-else class="hint">No groups have been configured yet.</p>
+                </div>
+            </section>
 
             <div class="actions">
-                <RouterLink class="btn btn-secondary" to="/clients">Cancel</RouterLink>
                 <button
                     type="submit"
                     class="btn btn-primary"
@@ -126,23 +131,12 @@ const save = async (): Promise<void> => {
                 >
                     <i class="ph-duotone ph-check" />Save changes
                 </button>
+                <RouterLink class="btn btn-secondary" to="/clients">Cancel</RouterLink>
             </div>
 
-            <p v-if="errors.form" class="form-error">{{ errors.form }}</p>
+            <p v-if="errors.form" class="error">{{ errors.form }}</p>
         </form>
 
         <AppToast v-model:open="toastOpen" :ok="toast?.ok ?? true" :text="toast?.text ?? ''" />
     </div>
 </template>
-
-<style scoped>
-.head { display: flex; align-items: flex-end; gap: 24px; margin-bottom: 20px; }
-.head > div { margin-right: auto; }
-
-.editor { max-width: 640px; }
-.client-name { max-width: 420px; margin-bottom: 24px; }
-.hint { margin: 5px 0 0; }
-.actions { display: flex; gap: 10px; margin-top: 26px; }
-
-.form-error { font-size: 12.5px; color: var(--color-accent-2-700); margin-top: 6px; }
-</style>

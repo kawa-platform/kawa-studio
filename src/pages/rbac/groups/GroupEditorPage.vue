@@ -80,16 +80,13 @@ const save = async (): Promise<void> => {
 </script>
 
 <template>
-    <div>
+    <div class="form">
         <div class="head">
-            <div>
-                <h1>{{ isNew ? 'New group' : `Edit “${nameParam}”` }}</h1>
-                <p class="lede">
-                    Clients are SASL principals the gateway authenticates; roles are the ACL bundles defined on the
-                    Roles screen. A client in several groups inherits the union of their roles.
-                </p>
-            </div>
-            <RouterLink class="btn btn-secondary" to="/rbac/groups"><i class="ph-duotone ph-arrow-left" />Back</RouterLink>
+            <h1>{{ isNew ? 'New group' : `Edit “${nameParam}”` }}</h1>
+            <p class="lede">
+                Clients are SASL principals the gateway authenticates; roles are the ACL bundles defined on the
+                Roles screen. A client in several groups inherits the union of their roles.
+            </p>
         </div>
 
         <RbacBanner>
@@ -97,54 +94,63 @@ const save = async (): Promise<void> => {
             group keeps hitting the <strong>default-deny</strong> wall.
         </RbacBanner>
 
-        <p v-if="notFound" class="form-error">
+        <p v-if="notFound" class="error">
             Group “{{ nameParam }}” does not exist. <RouterLink to="/rbac/groups/new">Create a new group</RouterLink> instead.
         </p>
 
-        <p v-if="groups.error.value" class="form-error">{{ groups.error.value.message }}</p>
+        <p v-if="groups.error.value" class="error">{{ groups.error.value.message }}</p>
 
-        <form v-else-if="!notFound" class="editor" @submit.prevent="save">
-            <div class="field group-name">
-                <label for="group-name">Group name</label>
-                <input
-                    id="group-name"
-                    v-model="draft.name"
-                    class="input mono"
-                    placeholder="e.g. payments-platform"
-                    @input="errors.name = ''"
-                >
-                <p v-if="!isNew" class="hint">Renaming re-keys the group — clients and roles move with it.</p>
-                <div v-if="errors.name" class="field-error">{{ errors.name }}</div>
-            </div>
+        <form v-else-if="!notFound" @submit.prevent="save">
+            <section>
+                <h2>1 · Identity</h2>
+                <div class="field">
+                    <label for="group-name">Group name</label>
+                    <input
+                        id="group-name"
+                        v-model="draft.name"
+                        class="input mono"
+                        placeholder="e.g. payments-platform"
+                        @input="errors.name = ''"
+                    >
+                    <p v-if="!isNew" class="hint">Renaming re-keys the group — clients and roles move with it.</p>
+                    <p v-if="errors.name" class="field-error">{{ errors.name }}</p>
+                </div>
+            </section>
 
-            <div class="field">
-                <label>Clients</label>
-                <SuggestionInput v-model="draft.clients" :suggestions="userSuggestions" placeholder="Add a client — e.g. alice" allow-new />
-                <p v-if="missingClients.length" class="warn">
-                    <i class="ph-duotone ph-warning" />
-                    {{ missingClients.join(', ') }} {{ missingClients.length === 1 ? 'is' : 'are' }} not in the gateway's
-                    client store yet — they can be added later.
-                </p>
-            </div>
+            <section>
+                <h2>2 · Clients</h2>
+                <div class="field">
+                    <label>Clients</label>
+                    <SuggestionInput v-model="draft.clients" :suggestions="userSuggestions" placeholder="Add a client — e.g. alice" allow-new />
+                    <p v-if="missingClients.length" class="warn">
+                        <i class="ph-duotone ph-warning" />
+                        {{ missingClients.join(', ') }} {{ missingClients.length === 1 ? 'is' : 'are' }} not in the gateway's
+                        client store yet — they can be added later.
+                    </p>
+                </div>
+            </section>
 
-            <div class="field">
-                <label>Roles</label>
-                <SuggestionInput v-model="draft.roles" :suggestions="roleSuggestions" placeholder="Add a role — e.g. orders-reader" allow-new />
-                <p v-if="danglingRoles.length" class="warn">
-                    <i class="ph-duotone ph-warning" />
-                    {{ danglingRoles.join(', ') }} {{ danglingRoles.length === 1 ? 'has' : 'have' }} no role config yet —
-                    these clients get nothing until a role with that name exists.
-                </p>
-            </div>
+            <section>
+                <h2>3 · Roles</h2>
+                <div class="field">
+                    <label>Roles</label>
+                    <SuggestionInput v-model="draft.roles" :suggestions="roleSuggestions" placeholder="Add a role — e.g. orders-reader" allow-new />
+                    <p v-if="danglingRoles.length" class="warn">
+                        <i class="ph-duotone ph-warning" />
+                        {{ danglingRoles.join(', ') }} {{ danglingRoles.length === 1 ? 'has' : 'have' }} no role config yet —
+                        these clients get nothing until a role with that name exists.
+                    </p>
+                </div>
+            </section>
 
             <div class="actions">
-                <RouterLink class="btn btn-secondary" to="/rbac/groups">Cancel</RouterLink>
                 <button type="submit" class="btn btn-primary" :disabled="upsert.isPending.value || rename.isPending.value">
                     <i class="ph-duotone ph-check" />{{ isNew ? 'Create group' : 'Save changes' }}
                 </button>
+                <RouterLink class="btn btn-secondary" to="/rbac/groups">Cancel</RouterLink>
             </div>
 
-            <p v-if="errors.form" class="form-error">{{ errors.form }}</p>
+            <p v-if="errors.form" class="error">{{ errors.form }}</p>
         </form>
 
         <AppToast v-model:open="toastOpen" :ok="toast?.ok ?? true" :text="toast?.text ?? ''" />
@@ -152,18 +158,6 @@ const save = async (): Promise<void> => {
 </template>
 
 <style scoped>
-.head { display: flex; align-items: flex-end; gap: 24px; margin-bottom: 20px; }
-.head > div { margin-right: auto; }
-
-.editor { max-width: 680px; }
-.hint { margin: 5px 0 0; }
-
-.field > label { display: block; font-size: 12px; margin-bottom: 6px; color: var(--muted); }
-
 .warn { display: flex; gap: 6px; align-items: baseline; font-size: 12px; color: var(--color-accent-2-700); margin: 7px 0 0; }
 .warn i { font-size: 13px; flex: none; }
-
-.actions { display: flex; gap: 10px; margin-top: 26px; }
-.field-error, .form-error { font-size: 12.5px; color: var(--color-accent-2-700); margin-top: 6px; }
-.form-error { font-size: 13px; }
 </style>

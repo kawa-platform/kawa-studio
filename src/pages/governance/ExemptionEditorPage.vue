@@ -40,7 +40,7 @@ const submit = (): void => {
 </script>
 
 <template>
-    <div class="wrap">
+    <div class="form">
         <div class="head">
             <h1>{{ isEdit ? 'Edit exemption' : 'New exemption' }}</h1>
             <p class="lede">
@@ -88,21 +88,5 @@ const submit = (): void => {
 </template>
 
 <style scoped>
-.wrap { max-width: 640px; }
-.head { margin-bottom: 22px; }
-section { margin-bottom: 30px; }
-h2 {
-    font-family: var(--font-heading);
-    font-size: 15px;
-    margin: 0 0 14px;
-    padding-left: 10px;
-    box-shadow: inset 3px 0 0 var(--brand);
-}
-.row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-.field > label { display: block; }
-.hint { font-size: 11.5px; color: var(--faint); margin: 7px 0 0; max-width: 62ch; }
 .hint code { font-family: var(--mono); color: var(--muted); }
-.field-error { font-size: 11.5px; color: var(--error); margin: 7px 0 0; }
-.actions { display: flex; gap: 8px; }
-.error { color: var(--error); margin-top: 14px; }
 </style>

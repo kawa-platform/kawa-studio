@@ -151,7 +151,7 @@ const submitPhysical = async (): Promise<void> => {
 </script>
 
 <template>
-    <div class="wrap">
+    <div class="form">
         <div class="head">
             <h1 v-if="!isEdit">New topic</h1>
             <h1 v-else class="edit-head">
@@ -310,8 +310,6 @@ const submitPhysical = async (): Promise<void> => {
 </template>
 
 <style scoped>
-.wrap { max-width: 640px; }
-.head { margin-bottom: 22px; }
 /* Edit head is a masthead pair: a small kicker over the topic name as the subject line.
    The name is the thing the operator came to see, so it takes the h1's full size. */
 .edit-head { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
@@ -326,15 +324,6 @@ const submitPhysical = async (): Promise<void> => {
 .edit-name { color: var(--brand-text); overflow-wrap: anywhere; }
 .tabs { margin-bottom: 30px; }
 .seg-list { display: flex; }
-section { margin-bottom: 30px; }
-h2 {
-    font-family: var(--font-heading);
-    font-size: 15px;
-    margin: 0 0 14px;
-    padding-left: 10px;
-    box-shadow: inset 3px 0 0 var(--brand);
-}
-.row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .extra { margin-top: 22px; }
 .extra > label {
     display: block;
@@ -342,12 +331,8 @@ h2 {
     margin-bottom: 9px;
     color: color-mix(in srgb, var(--color-text) 70%, transparent);
 }
-.hint { margin: 7px 0 0; }
-.field-error { font-size: 11.5px; color: var(--error); margin: 7px 0 0; }
 .check { display: flex; align-items: center; gap: 9px; font-size: 13px; margin-bottom: 14px; }
 .check-hint { margin: -7px 0 0 24px; }
-.actions { display: flex; gap: 8px; }
-.error { color: var(--error); margin-top: 14px; }
 kbd {
     font-family: var(--mono);
     font-size: 10.5px;

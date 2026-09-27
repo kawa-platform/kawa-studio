@@ -59,12 +59,12 @@ const submit = (): void => {
 </script>
 
 <template>
-    <div class="wrap">
+    <div class="form">
         <div class="head">
             <h1>{{ isEdit ? 'Edit rule' : 'New rule' }}</h1>
             <p class="lede">
-                Evaluated on every physical topic creation. If the expression returns false, the request is
-                refused with 403, the rule name and the message.
+              Rules are evaluated by Kawa on the kafka network protocol when creating or modifying physical and virtual topics.
+              They can be used to enforce naming conventions, partition tiers, replication factors, cleanup policies, and other topic properties.
             </p>
         </div>
 
@@ -118,23 +118,8 @@ const submit = (): void => {
 </template>
 
 <style scoped>
-.wrap { max-width: 640px; }
-.head { margin-bottom: 22px; }
-section { margin-bottom: 30px; }
-h2 {
-    font-family: var(--font-heading);
-    font-size: 15px;
-    margin: 0 0 14px;
-    padding-left: 10px;
-    box-shadow: inset 3px 0 0 var(--brand);
-}
-.field > label { display: block; }
-.hint { font-size: 11.5px; color: var(--faint); margin: 7px 0 0; max-width: 62ch; }
 .hint code { font-family: var(--mono); color: var(--muted); }
-.field-error { font-size: 11.5px; color: var(--error); margin: 7px 0 0; }
 .check-ok { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--success); margin: 7px 0 0; }
 textarea.input { font-family: var(--font-body); font-size: 14px; resize: vertical; }
-.actions { display: flex; gap: 8px; }
-.error { color: var(--error); margin-top: 14px; }
 kbd { font-family: var(--mono); font-size: 11px; padding: 0 4px; border: 1px solid var(--chrome-line); border-radius: 3px; }
 </style>
