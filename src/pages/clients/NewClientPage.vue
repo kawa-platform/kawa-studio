@@ -147,10 +147,6 @@ h2 {
   box-shadow: inset 3px 0 0 var(--brand);
 }
 
-.field {
-  margin-bottom: 18px;
-}
-
 .hint {
   margin: 7px 0 0;
 }
