@@ -139,7 +139,6 @@ const submit = (): void => {
 </template>
 
 <style scoped>
-.hint code { font-family: var(--mono); color: var(--muted); }
-.field-warn { color: var(--warning); margin: 7px 0 0; }
-textarea.input { resize: vertical; }
+.form .row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 18px; }
+.field-warn { font-size: 11.5px; color: var(--warning); margin: 7px 0 0; }
 </style>

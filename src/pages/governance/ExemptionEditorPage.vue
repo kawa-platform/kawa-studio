@@ -87,6 +87,4 @@ const submit = (): void => {
     </div>
 </template>
 
-<style scoped>
-.hint code { font-family: var(--mono); color: var(--muted); }
-</style>
+
