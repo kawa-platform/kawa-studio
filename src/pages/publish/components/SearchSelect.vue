@@ -56,7 +56,8 @@ const labelOf = (value: string): string =>
 </template>
 
 <style scoped>
-.select-field { width: 340px; }
+/* Fills whatever column it is dropped into; the container decides how wide that column is. */
+.select-field { width: 100%; }
 .anchor { position: relative; display: block; }
 .anchor .input { padding-right: 28px; width: 100%; box-sizing: border-box; }
 

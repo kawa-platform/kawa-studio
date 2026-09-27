@@ -266,6 +266,8 @@ const reset = (): void => {
 .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 30px; align-items: start; }
 .form-col { min-width: 0; }
 .steps { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
+/* SearchSelect fills its column, so the two steps set the width themselves. */
+.steps > * { flex: 1 1 300px; }
 
 .resolve {
     font-size: 12px;
