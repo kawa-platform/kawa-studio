@@ -83,17 +83,14 @@ const save = async (): Promise<void> => {
 </script>
 
 <template>
-    <div>
+    <div class="form">
         <div class="head">
-            <div>
-                <h1>{{ isNew ? 'New role' : `Edit “${nameParam}”` }}</h1>
-                <p class="lede">
-                    Under kawa the role is the ACL unit: a named set of allow/deny rules, each scoped to a topic,
-                    group, transactional id, or the whole cluster. Clients are never bound to a role directly — a group holds
-                    that link.
-                </p>
-            </div>
-            <RouterLink class="btn btn-secondary" to="/rbac/roles"><i class="ph-duotone ph-arrow-left" />Back</RouterLink>
+            <h1>{{ isNew ? 'New role' : `Edit “${nameParam}”` }}</h1>
+            <p class="lede">
+                Under kawa the role is the ACL unit: a named set of allow/deny rules, each scoped to a topic,
+                group, transactional id, or the whole cluster. Clients are never bound to a role directly — a group holds
+                that link.
+            </p>
         </div>
 
         <RbacBanner tone="warn">
@@ -101,44 +98,47 @@ const save = async (): Promise<void> => {
             for anything a role does not touch. A role with no ACLs grants nothing.
         </RbacBanner>
 
-        <p v-if="notFound" class="form-error">
+        <p v-if="notFound" class="error">
             Role “{{ nameParam }}” does not exist. <RouterLink to="/rbac/roles/new">Create a new role</RouterLink> instead.
         </p>
 
-        <p v-if="roles.error.value" class="form-error">{{ roles.error.value.message }}</p>
+        <p v-if="roles.error.value" class="error">{{ roles.error.value.message }}</p>
 
-        <form v-else-if="!notFound" class="editor" @submit.prevent="save">
-            <div class="field role-name">
-                <label for="role-name">Role name</label>
-                <input
-                    id="role-name"
-                    v-model="draft.name"
-                    class="input mono"
-                    placeholder="e.g. orders-reader"
-                    :disabled="!isNew"
-                    @input="errors.name = ''"
-                >
-                <p v-if="!isNew" class="hint">Renaming is not supported — the name keys the config API.</p>
-                <div v-if="errors.name" class="field-error">{{ errors.name }}</div>
-            </div>
+        <form v-else-if="!notFound" @submit.prevent="save">
+            <section>
+                <h2>1 · Identity</h2>
+                <div class="field">
+                    <label for="role-name">Role name</label>
+                    <input
+                        id="role-name"
+                        v-model="draft.name"
+                        class="input mono"
+                        placeholder="e.g. orders-reader"
+                        :disabled="!isNew"
+                        @input="errors.name = ''"
+                    >
+                    <p v-if="!isNew" class="hint">Renaming is not supported — the name keys the config API.</p>
+                    <p v-if="errors.name" class="field-error">{{ errors.name }}</p>
+                </div>
+            </section>
 
-            <div class="section">
-                <h2>ACLs</h2>
+            <section>
+                <h2>2 · ACLs</h2>
                 <AclEditor v-model="draft.acls" />
                 <button type="button" class="btn btn-ghost helper" @click="addBroadAccess">
                     <i class="ph-duotone ph-magic-wand" />Add common allow-all ACLs
                 </button>
-                <div v-if="errors.acls" class="field-error">{{ errors.acls }}</div>
-            </div>
+                <p v-if="errors.acls" class="field-error">{{ errors.acls }}</p>
+            </section>
 
             <div class="actions">
-                <RouterLink class="btn btn-secondary" to="/rbac/roles">Cancel</RouterLink>
                 <button type="submit" class="btn btn-primary" :disabled="upsert.isPending.value">
                     <i class="ph-duotone ph-check" />{{ isNew ? 'Create role' : 'Save changes' }}
                 </button>
+                <RouterLink class="btn btn-secondary" to="/rbac/roles">Cancel</RouterLink>
             </div>
 
-            <p v-if="errors.form" class="form-error">{{ errors.form }}</p>
+            <p v-if="errors.form" class="error">{{ errors.form }}</p>
         </form>
 
         <AppToast v-model:open="toastOpen" :ok="toast?.ok ?? true" :text="toast?.text ?? ''" />
@@ -146,18 +146,5 @@ const save = async (): Promise<void> => {
 </template>
 
 <style scoped>
-.head { display: flex; align-items: flex-end; gap: 24px; margin-bottom: 20px; }
-.head > div { margin-right: auto; }
-
-.editor { max-width: 860px; }
-.hint { margin: 5px 0 0; }
-
-.section h2 { font-size: 18px; margin: 0 0 14px; }
-
 .helper { margin-top: 10px; font-size: 12px; color: var(--color-accent-700); }
-
-.actions { display: flex; gap: 10px; margin-top: 26px; }
-
-.field-error, .form-error { font-size: 12.5px; color: var(--color-accent-2-700); margin-top: 6px; }
-.form-error { font-size: 13px; }
 </style>

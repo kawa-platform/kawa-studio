@@ -49,7 +49,7 @@ const submit = async (): Promise<void> => {
 </script>
 
 <template>
-  <div class="wrap">
+  <div class="form">
     <div class="head">
       <h1>New client</h1>
       <p class="lede">
@@ -127,45 +127,5 @@ const submit = async (): Promise<void> => {
 </template>
 
 <style scoped>
-.wrap {
-  max-width: 640px;
-}
-
-.head {
-  margin-bottom: 22px;
-}
-
-section {
-  margin-bottom: 30px;
-}
-
-h2 {
-  font-family: var(--font-heading);
-  font-size: 15px;
-  margin: 0 0 14px;
-  padding-left: 10px;
-  box-shadow: inset 3px 0 0 var(--brand);
-}
-
-.hint {
-  margin: 7px 0 0;
-}
-
 .section-hint { margin: -4px 0 13px; }
-
-.field-error {
-  font-size: 11.5px;
-  color: var(--error);
-  margin: 7px 0 0;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-}
-
-.error {
-  color: var(--error);
-  margin-top: 14px;
-}
 </style>

@@ -42,6 +42,7 @@ src/
 - **Types**: DTOs live in `src/api/types.ts`; use `import type` (verbatimModuleSyntax).
 - **Tests**: colocated `*.spec.ts`, Vitest + @vue/test-utils; mock `@/api` and `@tanstack/vue-query`.
 - **Style**: 4-space indent, `///` doc comments, `@/` alias imports.
+- **Form pages**: every create/edit page roots itself in `class="form"`; the measure (640px), head, numbered `section > h2`, `.row` pairs, action bar and hint/error text come from the shared `.form` block in `broadsheet.css`. Do not re-declare that chrome in a page's `<style scoped>` — only feature-specific bits (tabs, banners, CEL editors) belong there.
 - **Feature flag**: `VITE_ENABLE_ALL_PAGES === 'on'` gates non-default routes (see `src/router/nav.ts`).
 
 ## Gotchas
