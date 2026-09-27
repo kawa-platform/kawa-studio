@@ -274,6 +274,7 @@ figcaption {
 .btn-block { width: 100%; margin-top: var(--space-2); }
 
 /* — forms — */
+.field { margin-bottom: 18px; }
 .field > label {
   display: block; font-size: 12px; margin-bottom: 5px;
   color: color-mix(in srgb, var(--color-text) 70%, transparent);

@@ -342,7 +342,6 @@ h2 {
     margin-bottom: 9px;
     color: color-mix(in srgb, var(--color-text) 70%, transparent);
 }
-.field { margin-bottom: 18px; }
 .hint { margin: 7px 0 0; }
 .field-error { font-size: 11.5px; color: var(--error); margin: 7px 0 0; }
 .check { display: flex; align-items: center; gap: 9px; font-size: 13px; margin-bottom: 14px; }
