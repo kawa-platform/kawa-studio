@@ -99,8 +99,12 @@ const addCopyRow = (): void => {
 
         <template v-for="(acl, index) in acls" :key="index">
             <div class="acl">
-                <div class="row">
-                    <select class="input kind" :value="acl.resource.type" @change="setKind(index, ($event.target as HTMLSelectElement).value as ResourceKind)">
+                <div class="acl-card">
+                    <select
+                        class="input kind"
+                        :value="acl.resource.type"
+                        @change="setKind(index, ($event.target as HTMLSelectElement).value as ResourceKind)"
+                    >
                         <option v-for="kind in kinds" :key="kind" :value="kind">{{ kindLabel(kind) }}</option>
                     </select>
 
@@ -126,12 +130,15 @@ const addCopyRow = (): void => {
                     </template>
                     <span v-else class="note">Cluster-wide — no pattern</span>
 
-                    <button type="button" class="btn btn-ghost btn-icon remove" :aria-label="`Remove ACL ${index + 1}`" @click="removeRow(index)">
+                    <button
+                        type="button"
+                        class="btn btn-ghost btn-icon remove"
+                        :aria-label="`Remove ACL ${index + 1}`"
+                        @click="removeRow(index)"
+                    >
                         <i class="ph-duotone ph-trash" />
                     </button>
-                </div>
 
-                <div class="row verdict">
                     <select
                         class="input operation"
                         :value="acl.operation"
@@ -195,16 +202,26 @@ const addCopyRow = (): void => {
 
 .acl { display: flex; flex-direction: column; gap: 7px; }
 
-.row {
+.acl-card {
     display: grid;
     grid-template-columns: 148px minmax(0, 1fr) auto 36px;
-    gap: 8px;
+    grid-template-rows: auto auto;
+    gap: 7px 8px;
+    padding: 10px;
+    border: 1px solid var(--chrome-line);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
     align-items: center;
 }
-.verdict { grid-template-columns: minmax(0, 1fr) auto; }
 
-.note { grid-column: 2 / 4; font-size: 12px; color: var(--faint); }
-.pattern { min-width: 0; }
+.kind { grid-column: 1; grid-row: 1; }
+.pattern { grid-column: 2; grid-row: 1; min-width: 0; }
+.pattern-type { grid-column: 3; grid-row: 1; }
+.remove { grid-column: 4; grid-row: 1; }
+.operation { grid-column: 1 / 3; grid-row: 2; min-width: 0; }
+.perm { grid-column: 3; grid-row: 2; }
+.note { grid-column: 2 / 4; grid-row: 1; font-size: 12px; color: var(--faint); }
+
 .kind, .operation { min-height: 32px; }
 .remove { color: var(--faint); }
 .remove:hover { color: var(--color-accent-2-700); }
