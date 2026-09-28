@@ -23,8 +23,6 @@ export default defineConfig({
     },
     server: {
         port: 5173,
-        // Dev: forward /api to the gateway so the UI talks to the real backend.
-        proxy: { '/api': 'http://localhost:8080' },
     },
     test: {
         environment: 'jsdom',

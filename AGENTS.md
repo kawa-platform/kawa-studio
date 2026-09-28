@@ -4,7 +4,7 @@ Admin UI for the kawa Kafka access gateway. Vue 3 SPA served under `/admin/`.
 
 ## Commands
 
-- `npm run dev` — Vite dev server (port 5173; proxies `/api` → `http://localhost:8080`)
+- `npm run dev` — Vite dev server (port 5173; calls the gateway directly at `http://localhost:8080`)
 - `npm run build` — `vue-tsc -b` typecheck + `vite build` → `dist/`
 - `npm run preview` — serve the built `dist/`
 - `npm test` — Vitest (jsdom), colocated `*.spec.ts`

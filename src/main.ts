@@ -8,8 +8,8 @@ import { httpApi } from './api/http';
 import './assets/broadsheet.css';
 import './assets/theme.css';
 
-/// There is one API adapter: a fetch client against /api. In dev the Vite proxy forwards
-/// it to the gateway; in production nginx does the same.
+/// There is one API adapter: a fetch client against the gateway. In dev it calls the
+/// backend directly; in production nginx forwards the same paths to the gateway.
 const queryOptions: VueQueryPluginOptions = {
     queryClientConfig: {
         defaultOptions: {

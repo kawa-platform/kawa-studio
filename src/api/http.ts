@@ -12,10 +12,9 @@ import {
     type VirtualTopicPatch,
 } from './types';
 
-/// Defaults to the same-origin /api prefix, which the Vite dev proxy (and nginx in
-/// production) forwards to the gateway. Set VITE_API_BASE to point at a gateway
-/// directly, e.g. VITE_API_BASE=http://localhost:8080 npm run dev.
-const BASE = (import.meta.env.VITE_API_BASE?.trim() || '/api').replace(/\/$/, '');
+/// Defaults to the gateway running on localhost:8080. Set VITE_API_BASE to point at a
+/// different gateway, e.g. VITE_API_BASE=http://other-host:8080 npm run dev.
+const BASE = (import.meta.env.VITE_API_BASE?.trim() || 'http://localhost:8080').replace(/\/$/, '');
 
 async function request<T>(path: string, init?: RequestInit, base = BASE): Promise<T> {
     const response = await fetch(base + path, {
