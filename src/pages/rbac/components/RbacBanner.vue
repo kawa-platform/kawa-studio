@@ -15,15 +15,16 @@ withDefaults(defineProps<{ tone?: 'info' | 'warn' }>(), { tone: 'info' });
     gap: 10px;
     align-items: flex-start;
     padding: 12px 14px;
-    font-size: 12.5px;
-    line-height: 1.5;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--color-text);
     border: 1px solid var(--chrome-line);
     border-radius: var(--radius-md);
     background: var(--chrome);
     margin-bottom: 18px;
 }
 
-.rbac-banner i { font-size: 16px; margin-top: 1px; flex: none; }
+.rbac-banner i { font-size: 17px; margin-top: 2px; flex: none; }
 .rbac-banner.info { border-color: color-mix(in srgb, var(--color-accent) 55%, transparent); }
 .rbac-banner.info i { color: var(--color-accent-700); }
 .rbac-banner.warn { border-color: color-mix(in srgb, var(--color-accent-2) 55%, transparent); }

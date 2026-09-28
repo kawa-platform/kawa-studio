@@ -115,7 +115,7 @@ export const httpApi: KawaApi = {
         adminRequest<void>(`/topics/${encodeURIComponent(name)}`, {method: 'DELETE'}),
     // Physical topics are provisioned on the Kafka cluster itself via the admin API.
     createPhysicalTopic: (request) =>
-        adminRequest<CreatePhysicalTopicResult>('/topics', {
+        adminRequest<CreatePhysicalTopicResult>('/topics?consistency=applied', {
             method: 'POST',
             body: JSON.stringify({type: 'physical', ...request}),
         }),

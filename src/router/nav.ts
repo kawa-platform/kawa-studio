@@ -6,6 +6,7 @@ export const enableAllPages = import.meta.env.VITE_ENABLE_ALL_PAGES === 'on';
 export const defaultPaths = new Set([
     '/topics', '/topics/new', '/clients', '/clients/new', '/clients/access',
     '/rbac/roles', '/rbac/roles/new', '/rbac/groups', '/rbac/groups/new',
+    '/governance'
 ]);
 const isDefaultPath = (path?: string): boolean => !!path && defaultPaths.has(path);
 
@@ -19,7 +20,7 @@ export interface NavSection {
 
 const allNavSections: NavSection[] = [
     {
-        title: 'Clusters', note: 'Kafka', items: [
+        title: 'Kafka', note: 'Resources', items: [
             { label: 'Topics', icon: 'ph-stack', to: '/topics' },
             { label: 'Clusters', icon: 'ph-git-fork', to: '/clusters' },
         ],
@@ -29,6 +30,11 @@ const allNavSections: NavSection[] = [
             { label: 'Clients', icon: 'ph-users-three', to: '/clients' },
             { label: 'Groups', icon: 'ph-users', to: '/rbac/groups' },
             { label: 'Roles', icon: 'ph-shield-check', to: '/rbac/roles', level: 1 },
+        ],
+    },
+    {
+        title: 'Policies', note: 'Guardrails', items: [
+            { label: 'Governance', icon: 'ph-scales', to: '/governance' },
         ],
     },
     {
