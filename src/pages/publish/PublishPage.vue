@@ -241,7 +241,7 @@ const reset = (): void => {
             <aside class="preview-col">
                 <div class="preview-head">
                     <h6>Request preview</h6>
-                    <span class="mono faint">POST /api/publish</span>
+                    <span class="mono faint">POST /publish</span>
                 </div>
                 <pre class="pre preview">{{ preview }}</pre>
                 <div class="preview-actions">
