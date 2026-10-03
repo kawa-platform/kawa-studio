@@ -2,7 +2,8 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
-import { isInternalTopic, type ValueFormat } from '@/api/types';
+import { type ValueFormat } from '@/api/types';
+import { isInternalTopic } from '@/lib/topics';
 import { usePatchVirtualTopic, usePhysicalTopics, useTopics, useUpsertVirtualTopic, useCreatePhysicalTopic } from './queries';
 import { useClusters } from '../clusters/queries';
 import ConfigEditor from './components/ConfigEditor.vue';

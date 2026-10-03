@@ -32,6 +32,6 @@ export const routes: RouteRecordRaw[] = [
     { path: '/governance/rules/:id/edit', name: 'governance-rule-edit', component: () => import('../pages/governance/RuleEditorPage.vue'), meta: { crumb: 'Edit rule' } },
     { path: '/governance/variables/new', name: 'governance-variable-new', component: () => import('../pages/governance/VariableEditorPage.vue'), meta: { crumb: 'New variable' } },
     { path: '/governance/variables/:id/edit', name: 'governance-variable-edit', component: () => import('../pages/governance/VariableEditorPage.vue'), meta: { crumb: 'Edit variable' } },
-    { path: '/governance/exemptions/new', name: 'governance-exemption-new', component: () => import('../pages/governance/ExemptionEditorPage.vue'), meta: { crumb: 'New exemption' } },
-    { path: '/governance/exemptions/:id/edit', name: 'governance-exemption-edit', component: () => import('../pages/governance/ExemptionEditorPage.vue'), meta: { crumb: 'Edit exemption' } },
+    { path: '/governance/exemptions/new', name: 'governance-exemption-new', component: () => import('../pages/governance/ExemptionEditorPage.vue'), meta: { crumb: 'New global exemption' } },
+    { path: '/governance/exemptions/:id/edit', name: 'governance-exemption-edit', component: () => import('../pages/governance/ExemptionEditorPage.vue'), meta: { crumb: 'Edit global exemption' } },
 ];

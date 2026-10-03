@@ -3,8 +3,8 @@ import { createPinia } from 'pinia';
 import { VueQueryPlugin, type VueQueryPluginOptions } from '@tanstack/vue-query';
 import App from './App.vue';
 import { router } from './router';
-import { apiKey } from './api';
-import { httpApi } from './api/http';
+import { apiKey } from './api/api';
+import { fetchApi } from './api/fetchApi';
 import './assets/broadsheet.css';
 import './assets/theme.css';
 
@@ -22,5 +22,5 @@ createApp(App)
     .use(createPinia())
     .use(router)
     .use(VueQueryPlugin, queryOptions)
-    .provide(apiKey, httpApi)
+    .provide(apiKey, fetchApi)
     .mount('#app');

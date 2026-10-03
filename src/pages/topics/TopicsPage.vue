@@ -2,7 +2,8 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
-import {isInternalTopic, type Topic} from '@/api/types';
+import {type Topic} from '@/api/types';
+import {isInternalTopic} from '@/lib/topics';
 import TopicTree from './components/TopicTree.vue';
 import TopicDrawer from './components/TopicDrawer.vue';
 import { buildRows, type TopicView } from './lib/rows';

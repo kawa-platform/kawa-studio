@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { httpApi } from './http';
+import { fetchApi } from './fetchApi';
 
 afterEach(() => {
     vi.restoreAllMocks();
@@ -14,7 +14,7 @@ describe('auth clients', () => {
             new Response(JSON.stringify(client), { status: 200, headers: { 'content-type': 'application/json' } }),
         );
 
-        const result = await httpApi.upsertClient('alice', client);
+        const result = await fetchApi.upsertClient('alice', client);
 
         expect(result).toEqual(client);
         expect(fetchMock).toHaveBeenCalledWith(
@@ -32,7 +32,7 @@ describe('auth clients', () => {
             new Response(JSON.stringify({}), { status: 200, headers: { 'content-type': 'application/json' } }),
         );
 
-        await httpApi.resetPassword('alice', 'new-secret');
+        await fetchApi.resetPassword('alice', 'new-secret');
 
         expect(fetchMock).toHaveBeenCalledWith(
             `${ADMIN}/auth/clients/alice`,
@@ -50,7 +50,7 @@ describe('auth clients', () => {
             new Response(JSON.stringify(client), { status: 200, headers: { 'content-type': 'application/json' } }),
         );
 
-        const result = await httpApi.patchClient('alice', { mechanism: 'SCRAM-SHA-256' });
+        const result = await fetchApi.patchClient('alice', { mechanism: 'SCRAM-SHA-256' });
 
         expect(result).toEqual(client);
         expect(fetchMock).toHaveBeenCalledWith(
@@ -66,7 +66,7 @@ describe('auth clients', () => {
     it('deletes a client through DELETE /auth/clients/{name}', async () => {
         const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
 
-        await httpApi.deleteClient('alice');
+        await fetchApi.deleteClient('alice');
 
         expect(fetchMock).toHaveBeenCalledWith(
             `${ADMIN}/auth/clients/alice`,
@@ -90,7 +90,7 @@ describe('virtual topics', () => {
             new Response(JSON.stringify(request), { status: 200 }),
         );
 
-        await httpApi.patchVirtualTopic('orders', request);
+        await fetchApi.patchVirtualTopic('orders', request);
 
         expect(fetchMock).toHaveBeenCalledWith(
             `${ADMIN}/topics/orders`,
@@ -110,7 +110,7 @@ describe('virtual topics', () => {
             new Response(JSON.stringify(request), { status: 200 }),
         );
 
-        await httpApi.patchVirtualTopic('orders', request);
+        await fetchApi.patchVirtualTopic('orders', request);
 
         expect(fetchMock).toHaveBeenCalledWith(
             `${ADMIN}/topics/orders`,
@@ -136,7 +136,7 @@ describe('virtual topics', () => {
             }),
         );
 
-        const result = await httpApi.upsertVirtualTopic('orders eu', response);
+        const result = await fetchApi.upsertVirtualTopic('orders eu', response);
 
         expect(result).toEqual(response);
         expect(fetchMock).toHaveBeenCalledWith(
@@ -155,7 +155,7 @@ describe('virtual topics', () => {
             new Response(JSON.stringify(request), { status: 200 }),
         );
 
-        await httpApi.upsertVirtualTopic('orders.eu', request);
+        await fetchApi.upsertVirtualTopic('orders.eu', request);
 
         expect(fetchMock).toHaveBeenCalledWith(
             `${ADMIN}/topics/orders.eu`,
@@ -170,7 +170,7 @@ describe('virtual topics', () => {
     it('deletes through DELETE /topics/{name} on the admin API', async () => {
         const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
 
-        await httpApi.deleteVirtualTopic('orders.eu');
+        await fetchApi.deleteVirtualTopic('orders.eu');
 
         expect(fetchMock).toHaveBeenCalledWith(
             `${ADMIN}/topics/orders.eu`,
@@ -193,7 +193,7 @@ describe('physical topics', () => {
             new Response(JSON.stringify(request), { status: 201 }),
         );
 
-        const result = await httpApi.createPhysicalTopic(request);
+        const result = await fetchApi.createPhysicalTopic(request);
 
         expect(result).toEqual(request);
         expect(fetchMock).toHaveBeenCalledWith(
@@ -211,7 +211,7 @@ describe('physical topics', () => {
             new Response(JSON.stringify({ name: 'orders' }), { status: 201 }),
         );
 
-        await httpApi.createPhysicalTopic({ name: 'orders' });
+        await fetchApi.createPhysicalTopic({ name: 'orders' });
 
         expect(fetchMock).toHaveBeenCalledWith(
             `${ADMIN}/topics`,
@@ -236,7 +236,7 @@ describe('rbac groups', () => {
             }),
         );
 
-        const result = await httpApi.renameRbacGroup('producers', { name: 'publishers' });
+        const result = await fetchApi.renameRbacGroup('producers', { name: 'publishers' });
 
         expect(result).toEqual(response);
         expect(fetchMock).toHaveBeenCalledWith(

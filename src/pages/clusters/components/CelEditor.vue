@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { EditorState } from '@codemirror/state';
 import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { StreamLanguage, LanguageSupport, syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { autocompletion, completionKeymap, type CompletionContext } from '@codemirror/autocomplete';
 import { tags } from '@lezer/highlight';
+import { CEL_INSERT, type CelInsertTarget } from '../../governance/lib/reference';
 
 const model = defineModel<string>({ required: true });
 const props = defineProps<{
@@ -18,6 +19,17 @@ const props = defineProps<{
 
 const host = ref<HTMLElement | null>(null);
 let view: EditorView | null = null;
+
+/// On pages with a reference panel, clicking a field or example inserts it here at the cursor
+/// once this editor has been focused.
+const registry = inject(CEL_INSERT, null);
+const insertTarget: CelInsertTarget = {
+    insert(text) {
+        if (!view) return;
+        view.dispatch(view.state.replaceSelection(text));
+        view.focus();
+    },
+};
 
 /// Enough of CEL to colour an expression: string and number literals, the boolean and
 /// null keywords, the conversion functions the gateway exposes, and operators.
@@ -80,6 +92,7 @@ onMounted(() => {
                 autocompletion({ override: [complete], activateOnTyping: true }),
                 cmPlaceholder(props.placeholder ?? 'headers["region"] == "eu"'),
                 EditorView.lineWrapping,
+                EditorView.domEventHandlers({ focus: () => { registry?.focused(insertTarget); } }),
                 EditorView.updateListener.of((update) => {
                     if (update.docChanged) model.value = update.state.doc.toString();
                 }),
@@ -94,7 +107,10 @@ watch(model, (next) => {
     view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: next } });
 });
 
-onBeforeUnmount(() => view?.destroy());
+onBeforeUnmount(() => {
+    registry?.gone(insertTarget);
+    view?.destroy();
+});
 </script>
 
 <template>

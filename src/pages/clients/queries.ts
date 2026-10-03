@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { ApiError, type Client, type ClientConfigPatch, type CreateClientRequest } from '@/api';
-import { useApi } from '@/api';
+import { useApi } from '@/api/api';
+import { ApiError } from '@/api/error';
+import type { Client, ClientConfigPatch, CreateClientRequest } from '@/api/types';
 import { keys } from '@/queries/keys';
 
 export function useClients() {

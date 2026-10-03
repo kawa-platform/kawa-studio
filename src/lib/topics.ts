@@ -8,6 +8,8 @@ export const aclMatchesTopic = (resourceName: string, topicName: string): boolea
     resourceName === topicName
     || (resourceName.endsWith('*') && topicName.startsWith(resourceName.slice(0, -1)));
 
+export const isInternalTopic = (t: Topic) => t.name.startsWith("__")
+
 const UNITS = ['B', 'kB', 'MB', 'GB', 'TB', 'PB'];
 
 export function formatBytes(bytes: number | null | undefined): string {

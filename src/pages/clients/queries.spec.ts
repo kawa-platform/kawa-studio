@@ -11,7 +11,7 @@ vi.mock('@tanstack/vue-query', () => ({
     useQueryClient: useQueryClientMock,
 }));
 
-vi.mock('@/api', () => ({
+vi.mock('@/api/api', () => ({
     useApi: () => ({
         upsertClient: vi.fn(),
     }),

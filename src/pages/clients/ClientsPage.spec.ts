@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
     deleteClientMock: vi.fn(),
 }));
 
-vi.mock('@/api', () => ({
+vi.mock('@/api/api', () => ({
     useApi: () => ({
         listClients: () => Promise.resolve(mocks.usersData.value),
         deleteClient: mocks.deleteClientMock,

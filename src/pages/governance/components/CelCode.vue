@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { resourceVariables } from '../lib/resources';
 
 const props = defineProps<{ code: string; variables?: string[] }>();
 
@@ -15,7 +16,7 @@ const tokens = computed<Token[]>(() => {
         [/^\d+(\.\d+)?/, 'num'],
         [/^(true|false|null|in)\b/, 'kw'],
         [/^(int|double|string|bool|size|matches|startsWith|endsWith|contains|has)\b/, 'fn'],
-        [/^[A-Za-z_]\w*/, (m) => (m === 'topic' ? 'ctx' : vars.has(m) ? 'var' : undefined)],
+        [/^[A-Za-z_]\w*/, (m) => (resourceVariables.includes(m) ? 'ctx' : vars.has(m) ? 'var' : undefined)],
         [/^(&&|\|\||==|!=|>=|<=|[<>!+\-*/%])/, 'op'],
     ];
     let rest = props.code;
