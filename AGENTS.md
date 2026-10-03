@@ -18,7 +18,7 @@ Vue 3.5 (`<script setup lang="ts">`), Vite 7, TypeScript 5.9 (strict, `verbatimM
 
 ```
 src/
-  api/          Backend contract: index.ts (KawaApi interface + useApi()), http.ts (fetch impl), types.ts (DTOs)
+  api/          Backend contract: api.ts (KawaApi interface + useApi()), fetchApi.ts (fetch impl), types.ts (DTOs), error.ts (ApiError)
   assets/       Global CSS (broadsheet.css, theme.css)
   components/   Shared app components (AppSidebar, DataTable, ConfirmDialog, …)
   lib/          Pure helpers shared across ≥2 features
@@ -37,7 +37,7 @@ src/
 ## Conventions
 
 - **Feature modules**: every feature follows the shape above. Feature-local composables live in the feature dir (e.g. `pages/topics/useTopicView.ts`); `src/composables/` was removed and must not be re-created.
-- **API**: extend `KawaApi` in `src/api/index.ts` and the impl in `src/api/http.ts`. Components never call `fetch` directly — use `useApi()`.
+- **API**: extend `KawaApi` in `src/api/api.ts` and the impl in `src/api/fetchApi.ts`. Components never call `fetch` directly — use `useApi()`. Import from the exact file (`@/api/api`, `@/api/types`, `@/api/error`) — there is no barrel.
 - **Data fetching**: `useQuery`/`useMutation` from TanStack Vue Query, always keyed from `src/queries/keys.ts`; invalidate after writes.
 - **Types**: DTOs live in `src/api/types.ts`; use `import type` (verbatimModuleSyntax).
 - **Tests**: colocated `*.spec.ts`, Vitest + @vue/test-utils; mock `@/api` and `@tanstack/vue-query`.

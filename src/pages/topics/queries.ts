@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { useApi } from '@/api';
-import { ApiError, type Acl, type CreatePhysicalTopicRequest, type CreatePhysicalTopicResult, type Topic, type VirtualTopicConfig, type VirtualTopicPatch } from '@/api/types';
+import { useApi } from '@/api/api';
+import { ApiError } from '@/api/error';
+import type { Acl, CreatePhysicalTopicRequest, CreatePhysicalTopicResult, Topic, VirtualTopicConfig, VirtualTopicPatch } from '@/api/types';
 import { keys } from '@/queries/keys';
 
 export function useTopics() {

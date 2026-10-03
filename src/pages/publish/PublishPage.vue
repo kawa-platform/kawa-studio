@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useQuery } from '@tanstack/vue-query';
-import { useApi } from '@/api';
-import { ApiError, type SchemaDetail, type SchemaListing } from '@/api/types';
+import { useApi } from '@/api/api';
+import { ApiError } from '@/api/error';
+import type { SchemaDetail, SchemaListing } from '@/api/types';
 import AppToast from '@/components/AppToast.vue';
 import { keys } from '@/queries/keys';
 import SchemaForm from './components/SchemaForm.vue';

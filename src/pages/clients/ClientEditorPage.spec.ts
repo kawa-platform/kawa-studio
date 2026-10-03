@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
     push: vi.fn(),
 }));
 
-vi.mock('@/api', () => ({}));
+vi.mock('@/api/api', () => ({}));
 
 vi.mock('./queries', () => ({
     useClients: mocks.clients,

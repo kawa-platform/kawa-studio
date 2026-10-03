@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useQuery } from '@tanstack/vue-query';
-import { useApi } from '@/api';
-import { ApiError, type Client } from '@/api/types';
+import { useApi } from '@/api/api';
+import { ApiError } from '@/api/error';
+import type { Client } from '@/api/types';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { keys } from '@/queries/keys';
 import { useRbacGroups } from '../rbac/queries';

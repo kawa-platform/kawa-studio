@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue';
 import {useRouter} from 'vue-router';
-import {ApiError} from '@/api/types';
+import {ApiError} from '@/api/error';
 import {validateCreateUser} from './lib/clients';
 import {useCreateClient} from "@/pages/clients/queries";
 import {useRbacGroups} from '@/pages/rbac/queries';
@@ -101,7 +101,8 @@ const submit = async (): Promise<void> => {
 
     <section>
       <h2>3 · Groups</h2>
-      <p class="hint section-hint">Choose the RBAC groups this client should belong to. Group roles grant the client its effective access.</p>
+      <p class="hint section-hint">Choose the RBAC groups this client should belong to. Group roles grant the client its
+        effective access.</p>
       <p v-if="groups.isPending.value" class="hint">Loading groups…</p>
       <p v-else-if="groups.error.value" class="field-error">Could not load groups: {{ groups.error.value.message }}</p>
       <SuggestionInput
@@ -115,7 +116,8 @@ const submit = async (): Promise<void> => {
     </section>
 
     <div class="actions">
-      <button class="btn btn-primary" :disabled="pending || groups.isPending.value || !!groups.error.value" @click="submit">
+      <button class="btn btn-primary" :disabled="pending || groups.isPending.value || !!groups.error.value"
+              @click="submit">
         <i class="ph-duotone ph-user-plus"/>
         {{ pending ? 'Creating…' : 'Create client' }}
       </button>
@@ -127,5 +129,7 @@ const submit = async (): Promise<void> => {
 </template>
 
 <style scoped>
-.section-hint { margin: -4px 0 13px; }
+.section-hint {
+  margin: -4px 0 13px;
+}
 </style>

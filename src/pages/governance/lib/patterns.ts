@@ -48,7 +48,7 @@ export function parsePattern(src: string): PatternNode[] {
     };
 
     const quantify = (node: PatternNode): PatternNode => {
-        const q = src[i];
+        const q = src.charAt(i);
         if (q === '?') { i++; return { t: 'opt', child: node }; }
         if (q === '+' || q === '*') { i++; return node; }
         if (q === '{') unsupported('{n,m}');
@@ -56,16 +56,17 @@ export function parsePattern(src: string): PatternNode[] {
     };
 
     const seq = (): PatternNode[] => {
-        const alts: PatternNode[][] = [[]];
-        const push = (n: PatternNode): void => { alts[alts.length - 1].push(n); };
+        let current: PatternNode[] = [];
+        const alts: PatternNode[][] = [current];
+        const push = (n: PatternNode): void => { current.push(n); };
         while (i < end) {
-            const c = src[i];
+            const c = src.charAt(i);
             if (c === ')') break;
-            if (c === '|') { i++; alts.push([]); continue; }
+            if (c === '|') { i++; current = []; alts.push(current); continue; }
             if (c === '{') unsupported('{n,m}');
             if (c === '\\') {
-                const e = src[i + 1];
-                if (e === undefined) unsupported('trailing backslash');
+                const e = src.charAt(i + 1);
+                if (e === '') unsupported('trailing backslash');
                 if (/[1-9k]/.test(e)) unsupported('backreference');
                 i += 2;
                 push(quantify(CLASS_ESCAPES.includes(e) ? { t: 'var', name: 'value' } : { t: 'lit', v: e }));
@@ -92,11 +93,12 @@ export function parsePattern(src: string): PatternNode[] {
                     i += 1;
                 }
                 const inner = seq();
-                if (src[i] !== ')') unsupported('unclosed group');
+                if (src.charAt(i) !== ')') unsupported('unclosed group');
                 i++;
+                const only = inner.length === 1 ? inner[0] : undefined;
                 const node: PatternNode = name
                     ? { t: 'var', name }
-                    : inner.length === 1 && inner[0].t === 'alt' ? inner[0] : { t: 'seq', nodes: inner };
+                    : only?.t === 'alt' ? only : { t: 'seq', nodes: inner };
                 push(quantify(node));
                 continue;
             }
@@ -104,7 +106,7 @@ export function parsePattern(src: string): PatternNode[] {
             i++;
             push(quantify({ t: 'lit', v: c }));
         }
-        return alts.length === 1 ? alts[0] : [{ t: 'alt', branches: alts }];
+        return alts.length === 1 ? current : [{ t: 'alt', branches: alts }];
     };
 
     const nodes = seq();
@@ -114,8 +116,14 @@ export function parsePattern(src: string): PatternNode[] {
 
 function branchesOf(nodes: PatternNode[]): PatternNode[][] {
     let top = nodes;
-    while (top.length === 1 && top[0].t === 'seq') top = top[0].nodes;
-    return top.length === 1 && top[0].t === 'alt' ? top[0].branches : [top];
+    for (;;) {
+        const only = top.length === 1 ? top[0] : undefined;
+        if (only?.t === 'seq') {
+            top = only.nodes;
+            continue;
+        }
+        return only?.t === 'alt' ? only.branches : [top];
+    }
 }
 
 const kids = (n: PatternNode): PatternNode[] => (n.t === 'seq' ? n.nodes : [n]);
@@ -141,7 +149,7 @@ function renderOf(nodes: PatternNode[], include: PatternNode[], prefix: string, 
             case 'var': return samples[`${prefix}.${n.name}`] ?? samples[n.name] ?? n.name;
             case 'seq': return renderOf(n.nodes, include, prefix, samples);
             case 'opt': return include.includes(n) ? renderOf(kids(n.child), include, prefix, samples) : '';
-            case 'alt': return renderOf(n.branches[0], include, prefix, samples);
+            case 'alt': return renderOf(n.branches[0] ?? [], include, prefix, samples);
         }
     }).join('');
 }
@@ -156,7 +164,7 @@ function prefixOf(nodes: PatternNode[]): string {
         if (n.t !== 'lit') break;
         s += n.v;
     }
-    return s.split('.')[0];
+    return s.split('.')[0] ?? '';
 }
 
 /// One row per alternation branch: an example with no optional segments, then one per
@@ -178,12 +186,27 @@ export function patternRows(
     });
 }
 
-/// A rule gets a pattern table when its expression calls matches() with a variable whose
-/// value is an annotated regex. Nothing is attached to the rule by hand.
-export function patternsForRule(expression: string, variables: GovernanceVariable[]): RulePatterns[] {
+const MATCHES_VARIABLE = /(?:\.matches\(\s*|\bmatches\(\s*[^,()]+,\s*)([A-Za-z_]\w*)\s*\)/g;
+const MATCHES_LITERAL = /\.matches\(\s*"((?:[^"\\]|\\.)*)"\s*\)/g;
+
+/// A rule gets a pattern table when an expression calls matches() with a variable whose
+/// value is an annotated regex, or with an inline string literal that has named groups.
+/// Inline rows from every expression merge into one table captioned with `label`.
+/// Nothing is attached to the rule by hand.
+export function patternsFor(expressions: string[], variables: GovernanceVariable[], label = 'sub-rules'): RulePatterns[] {
     const names = new Set<string>();
-    const call = /(?:\.matches\(\s*|\bmatches\(\s*[^,()]+,\s*)([A-Za-z_]\w*)\s*\)/g;
-    for (const m of expression.matchAll(call)) names.add(m[1]);
+    const inline: PatternRow[] = [];
+    for (const expression of expressions) {
+        for (const m of expression.matchAll(MATCHES_VARIABLE)) names.add(m[1]!);
+        for (const m of expression.matchAll(MATCHES_LITERAL)) {
+            try {
+                const src = JSON.parse(`"${m[1]}"`) as string;
+                if (hasNamedGroups(src)) inline.push(...patternRows(src));
+            } catch {
+                // not a parseable pattern; no table
+            }
+        }
+    }
 
     const out: RulePatterns[] = [];
     for (const name of names) {
@@ -192,6 +215,7 @@ export function patternsForRule(expression: string, variables: GovernanceVariabl
         const rows = variablePatternRows(variable);
         if (rows) out.push({ variable: name, rows });
     }
+    if (inline.length) out.push({ variable: label, rows: inline });
     return out;
 }
 

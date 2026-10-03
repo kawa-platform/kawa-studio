@@ -1,30 +1,40 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import PatternTable from './components/PatternTable.vue';
 import { parseLiteral, referencesVariable } from './lib/cel';
 import { hasNamedGroups, variablePatternRows } from './lib/patterns';
-import { useGovernanceStore } from './lib/store';
+import { ruleExpressions } from './lib/rules';
+import { resourceVariables } from './lib/resources';
+import { useGovernanceDocument, useSaveVariable } from './queries';
 import { variableTypes, type GovernanceVariable } from './lib/types';
 
 const route = useRoute();
 const router = useRouter();
-const store = useGovernanceStore();
+const { query, doc } = useGovernanceDocument();
+const save = useSaveVariable();
 
 const variableId = computed(() => route.params.id as string | undefined);
-const existing = computed(() => (variableId.value ? store.doc.variables.find((v) => v.id === variableId.value) ?? null : null));
+const existing = computed(() => (variableId.value ? doc.value.variables.find((v) => v.id === variableId.value) ?? null : null));
 const isEdit = computed(() => !!variableId.value);
 
 const blank = (): GovernanceVariable => ({ id: 'v' + Date.now(), name: '', type: 'string', value: '', note: '' });
 const draft = ref<GovernanceVariable>(existing.value ? { ...existing.value } : blank());
+const loaded = ref(!!existing.value || !isEdit.value);
+watch(existing, (variable) => {
+    if (variable && !loaded.value) {
+        draft.value = { ...variable };
+        loaded.value = true;
+    }
+});
 
-const reserved = new Set(['topic', 'true', 'false', 'null', 'in', 'has', 'int', 'uint', 'double', 'string', 'bool', 'bytes', 'size', 'dyn', 'type']);
+const reserved = new Set([...resourceVariables, 'true', 'false', 'null', 'in', 'has', 'int', 'uint', 'double', 'string', 'bool', 'bytes', 'size', 'dyn', 'type']);
 
 /// Rules that reference the variable under its saved name.
 const usedBy = computed(() => {
     const name = existing.value?.name;
     if (!name) return 0;
-    return store.doc.rules.filter((r) => referencesVariable(r.expression, name) || referencesVariable(r.selector, name)).length;
+    return doc.value.rules.filter((r) => ruleExpressions(r).some((e) => referencesVariable(e, name))).length;
 });
 
 const nameError = computed(() => {
@@ -32,7 +42,7 @@ const nameError = computed(() => {
     if (!name) return null;
     if (!/^[A-Za-z_]\w*$/.test(name)) return 'Start with a letter or underscore; letters, digits and underscores only.';
     if (reserved.has(name)) return `${name} is reserved in CEL or the topic context.`;
-    const taken = store.doc.variables.some((v) => v.name === name && v.id !== draft.value.id);
+    const taken = doc.value.variables.some((v) => v.name === name && v.id !== draft.value.id);
     return taken ? 'Another variable has this name.' : null;
 });
 
@@ -60,15 +70,23 @@ const isAnnotated = computed(() => {
 });
 const rows = computed(() => (isAnnotated.value ? variablePatternRows(draft.value) : null));
 
+/// The gateway refuses to remove a name a rule still reads, so a variable in use keeps its name.
 const canSave = computed(() =>
-    !!draft.value.name.trim() && !nameError.value && !!draft.value.value.trim() && !valueError.value);
+    !!draft.value.name.trim() && !nameError.value && !renamed.value && !!draft.value.value.trim() && !valueError.value);
 
 const back = (): void => { void router.push({ name: 'governance', query: { tab: 'variables' } }); };
 
-const submit = (): void => {
-    if (!canSave.value) return;
-    store.upsertVariable({ ...draft.value, name: draft.value.name.trim() });
-    back();
+const saveError = ref<string | null>(null);
+
+const submit = async (): Promise<void> => {
+    if (!canSave.value || save.isPending.value) return;
+    saveError.value = null;
+    try {
+        await save.mutateAsync({ variable: { ...draft.value }, previousName: existing.value?.name });
+        back();
+    } catch (cause) {
+        saveError.value = cause instanceof Error ? cause.message : 'Could not save the variable.';
+    }
 };
 </script>
 
@@ -82,7 +100,9 @@ const submit = (): void => {
             </p>
         </div>
 
-        <p v-if="isEdit && !existing" class="error">Variable does not exist.</p>
+        <p v-if="isEdit && query.isPending.value" class="hint" role="status">Loading the variable from the gateway…</p>
+        <p v-else-if="isEdit && query.error.value" class="error">Could not load governance: {{ query.error.value.message }}</p>
+        <p v-else-if="isEdit && !loaded" class="error">Variable does not exist.</p>
 
         <template v-else>
             <section>
@@ -93,7 +113,7 @@ const submit = (): void => {
                         <input id="var-name" v-model="draft.name" class="input mono" placeholder="partitionTiers" autocomplete="off">
                         <p v-if="nameError" class="field-error">{{ nameError }}</p>
                         <p v-else-if="renamed" class="field-warn">
-                            Referenced by {{ usedBy }} {{ usedBy === 1 ? 'rule' : 'rules' }} as {{ existing?.name }}; they stop validating until updated.
+                            Referenced by {{ usedBy }} {{ usedBy === 1 ? 'rule' : 'rules' }} as {{ existing?.name }}. Update those rules first, then rename.
                         </p>
                         <p v-else class="hint">How rules refer to it.</p>
                     </div>
@@ -128,12 +148,13 @@ const submit = (): void => {
             </section>
 
             <div class="actions">
-                <button class="btn btn-primary" :disabled="!canSave" @click="submit">
-                    <i class="ph-duotone ph-check" />{{ isEdit ? 'Save changes' : 'Add variable' }}
+                <button class="btn btn-primary" :disabled="!canSave || save.isPending.value" @click="submit">
+                    <i class="ph-duotone ph-check" />{{ save.isPending.value ? 'Saving…' : isEdit ? 'Save changes' : 'Add variable' }}
                 </button>
                 <button class="btn btn-secondary" @click="back">Cancel</button>
             </div>
-            <p class="hint">Changes stay a draft until you save and apply them on the Governance page.</p>
+            <p v-if="saveError" class="field-error" role="alert">{{ saveError }}</p>
+            <p class="hint">Saving writes the variable to the gateway, which first checks that every rule reading it still compiles.</p>
         </template>
     </div>
 </template>
