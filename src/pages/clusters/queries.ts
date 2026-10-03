@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { useApi } from '@/api';
-import { ApiError, type Clusters } from '@/api/types';
+import { useApi } from '@/api/api';
+import { ApiError } from '@/api/error';
+import type { Clusters } from '@/api/types';
 import { keys } from '@/queries/keys';
 
 export function useClusters() {

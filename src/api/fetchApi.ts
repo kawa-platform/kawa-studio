@@ -1,11 +1,16 @@
-import type {KawaApi, AclQuery} from './index';
+import type {KawaApi, AclQuery} from './api';
+import {ApiError} from './error';
 import {
-    ApiError,
     type Acl,
     type ApiErrorBody,
     type AuthClientView,
     type Client,
     type CreatePhysicalTopicResult,
+    type GovernanceDryRunView,
+    type GovernanceExemptionView,
+    type GovernanceRuleView,
+    type GovernanceVariableView,
+    type GovernanceView,
     type GroupView,
     type RoleView,
     type Topic,
@@ -63,7 +68,7 @@ async function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 /// Real client. List endpoints return bare JSON arrays, not a named envelope.
-export const httpApi: KawaApi = {
+export const fetchApi: KawaApi = {
     listTopics: () => request<Topic[]>('/topics'),
     getTopic: (name, type) => request('/topics/' + encodeURIComponent(name) + query({type})),
 
@@ -115,7 +120,7 @@ export const httpApi: KawaApi = {
         adminRequest<void>(`/topics/${encodeURIComponent(name)}`, {method: 'DELETE'}),
     // Physical topics are provisioned on the Kafka cluster itself via the admin API.
     createPhysicalTopic: (request) =>
-        adminRequest<CreatePhysicalTopicResult>('/topics?consistency=applied', {
+        adminRequest<CreatePhysicalTopicResult>('/topics', {
             method: 'POST',
             body: JSON.stringify({type: 'physical', ...request}),
         }),
@@ -143,4 +148,31 @@ export const httpApi: KawaApi = {
     deleteRbacGroup: (name) =>
         adminRequest<void>(`/rbac/groups/${encodeURIComponent(name)}`, {method: 'DELETE'}),
     listAuthClients: () => adminRequest<AuthClientView[]>('/auth/clients'),
+
+    // Governance writes wait until the gateway applied them, so the list re-read right after
+    // already shows the change.
+    getGovernance: () => adminRequest<GovernanceView>('/governance/rules'),
+    upsertGovernanceRule: (name, body) =>
+        adminRequest<GovernanceRuleView>(`/governance/rules/${encodeURIComponent(name)}?consistency=applied`, {
+            method: 'PUT',
+            body: JSON.stringify(body),
+        }),
+    deleteGovernanceRule: (name) =>
+        adminRequest<void>(`/governance/rules/${encodeURIComponent(name)}?consistency=applied`, {method: 'DELETE'}),
+    upsertGovernanceExemption: (name, body) =>
+        adminRequest<GovernanceExemptionView>(`/governance/exemptions/${encodeURIComponent(name)}?consistency=applied`, {
+            method: 'PUT',
+            body: JSON.stringify(body),
+        }),
+    deleteGovernanceExemption: (name) =>
+        adminRequest<void>(`/governance/exemptions/${encodeURIComponent(name)}?consistency=applied`, {method: 'DELETE'}),
+    upsertGovernanceVariable: (name, body) =>
+        adminRequest<GovernanceVariableView>(`/governance/variables/${encodeURIComponent(name)}?consistency=applied`, {
+            method: 'PUT',
+            body: JSON.stringify(body),
+        }),
+    deleteGovernanceVariable: (name) =>
+        adminRequest<void>(`/governance/variables/${encodeURIComponent(name)}?consistency=applied`, {method: 'DELETE'}),
+    dryRunGovernance: (body) =>
+        adminRequest<GovernanceDryRunView>('/governance/dry-run', {method: 'POST', body: JSON.stringify(body)}),
 };

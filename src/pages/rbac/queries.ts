@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { useApi } from '@/api';
-import { ApiError, type GroupConfig, type GroupConfigPatch, type GroupView, type RoleConfig, type RoleView } from '@/api/types';
+import { useApi } from '@/api/api';
+import { ApiError } from '@/api/error';
+import type { GroupConfig, GroupConfigPatch, GroupView, RoleConfig, RoleView } from '@/api/types';
 import { keys } from '@/queries/keys';
 
 export function useRbacRoles() {

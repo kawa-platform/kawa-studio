@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { executablePattern, patternRows, patternsForRule, variablePatternRows } from './patterns';
+import { executablePattern, patternRows, patternsFor, variablePatternRows } from './patterns';
 import type { GovernanceVariable } from './types';
 
 const variable = (value: string, extra: Partial<GovernanceVariable> = {}): GovernanceVariable => ({
@@ -19,7 +19,7 @@ describe('patternRows', () => {
     });
 
     it('falls back to the group name when no sample is given', () => {
-        expect(patternRows('^app\\.(?<service>[a-z]+)$')[0].examples).toEqual(['app.service']);
+        expect(patternRows('^app\\.(?<service>[a-z]+)$')[0]?.examples).toEqual(['app.service']);
     });
 
     it('rejects constructs outside the supported subset', () => {
@@ -36,15 +36,27 @@ describe('executablePattern', () => {
     });
 });
 
-describe('patternsForRule', () => {
+describe('patternsFor', () => {
     it('shows a table only for matches() on an annotated regex variable', () => {
         const vars = [variable('^app\\.(?<service>[a-z]+)$'), { ...variable('^x$'), name: 'plain' }];
-        expect(patternsForRule('topic.name.matches(namingPattern)', vars)).toHaveLength(1);
-        expect(patternsForRule('topic.name.matches(plain)', vars)).toHaveLength(0);
-        expect(patternsForRule('topic.partitions in tiers', vars)).toHaveLength(0);
+        expect(patternsFor(['topic.name.matches(namingPattern)'], vars)).toHaveLength(1);
+        expect(patternsFor(['topic.name.matches(plain)'], vars)).toHaveLength(0);
+        expect(patternsFor(['topic.partitions in tiers'], vars)).toHaveLength(0);
     });
 
     it('returns null rows for an unparseable pattern instead of throwing', () => {
         expect(variablePatternRows(variable('^(?<a>x){2}$'))).toBeNull();
+    });
+});
+
+describe('patternsFor inline literals', () => {
+    it('builds one table from matches() on string literals with named groups', () => {
+        const rows = patternsFor([
+            'topic.name.matches("^model\\\\.(?<domain>[a-z]+)$")',
+            'topic.name.matches("^app\\\\.(?<service>[a-z]+)(?:\\\\.dlt)?$")',
+        ], [], 'naming');
+        expect(rows).toHaveLength(1);
+        expect(rows[0]!.variable).toBe('naming');
+        expect(rows[0]!.rows.map((r) => r.form)).toEqual(['model.<domain>', 'app.<service>[.dlt]']);
     });
 });

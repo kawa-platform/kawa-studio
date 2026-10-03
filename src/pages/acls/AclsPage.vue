@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useQuery } from '@tanstack/vue-query';
-import { useApi } from '@/api';
-import { ApiError, type Acl, type CreateAclRequest, type PermissionType, type ResourceType } from '@/api/types';
+import { useApi } from '@/api/api';
+import { ApiError } from '@/api/error';
+import type { Acl, CreateAclRequest, PermissionType, ResourceType } from '@/api/types';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { keys } from '@/queries/keys';
 

@@ -26,8 +26,6 @@ export interface CreatePhysicalTopicResult {
     configs?: Record<string, string>;
 }
 
-export const isInternalTopic = (t: Topic) => t.name.startsWith("__")
-
 export interface Topic {
     type: TopicType;
     name: string;
@@ -181,17 +179,6 @@ export interface ApiErrorBody {
     error: { code: string; message: string; field?: string };
 }
 
-export class ApiError extends Error {
-    constructor(
-        readonly code: string,
-        message: string,
-        readonly field?: string,
-    ) {
-        super(message);
-        this.name = 'ApiError';
-    }
-}
-
 // ── RBAC ———————————————————————————————————————————————————————————
 // Uppercase enum spellings match the admin API wire format exactly (see
 // openapi.yaml in kawa-http-admin). They never share space with the
@@ -243,4 +230,115 @@ export interface AuthClientView {
     username: string;
     mechanism: string;
     password: string;
+}
+
+// ── Governance (admin server, /governance/*) ──
+// Wire shapes of the gateway's governance section. The governance pages convert them to their
+// own model in pages/governance/lib/apiMapper.ts.
+
+export interface GovernanceExpression {
+    type: 'CEL';
+    value: string;
+}
+
+export type GovernanceResourceType = 'TOPIC' | 'GROUP' | 'TRANSACTIONAL_ID';
+export type GovernanceTopicScope = 'BOTH' | 'PHYSICAL' | 'VIRTUAL';
+export type GovernanceMatch = 'ALL' | 'ANY';
+
+export interface GovernanceSelector {
+    resourceType: GovernanceResourceType;
+    /// null selects every resource of the type.
+    expression: GovernanceExpression | null;
+    scope?: GovernanceTopicScope;
+    operations?: ('CREATE' | 'ALTER' | 'DELETE')[];
+}
+
+export interface GovernanceCheck {
+    kind: 'check';
+    name: string;
+    errorMessage: string | null;
+    expression: GovernanceExpression;
+}
+
+export interface GovernanceGroup {
+    kind: 'group';
+    name: string;
+    errorMessage: string | null;
+    match: GovernanceMatch;
+    checks: GovernanceCheck[];
+}
+
+export type GovernanceSubRule = GovernanceCheck | GovernanceGroup;
+
+export interface GovernanceExemptionView {
+    name: string;
+    description: string | null;
+    expression: GovernanceExpression;
+}
+
+/// GET /governance/rules/{name}, and the PUT body (name optional there).
+export interface GovernanceRuleView {
+    name: string;
+    errorMessage: string;
+    description: string | null;
+    selector: GovernanceSelector;
+    match: GovernanceMatch;
+    subRules: GovernanceSubRule[];
+    exemptions: GovernanceExemptionView[];
+}
+
+export type GovernanceVariableType = 'string' | 'int' | 'double' | 'bool' | 'list<string>' | 'list<int>';
+
+/// GET/PUT /governance/variables/{name}. `value` is the literal in JSON syntax.
+export interface GovernanceVariableView {
+    name: string;
+    type: GovernanceVariableType;
+    value: string;
+    note: string | null;
+    samples?: Record<string, string>;
+    notes?: Record<string, string>;
+    extraExamples?: Record<string, string[]>;
+}
+
+/// GET /governance/rules: the whole section.
+export interface GovernanceView {
+    rules: GovernanceRuleView[];
+    exemptions: GovernanceExemptionView[];
+    variables: GovernanceVariableView[];
+}
+
+/// POST /governance/dry-run. `rule` evaluates that unsaved rule alone instead of the stored ones.
+export interface GovernanceDryRunRequest {
+    resourceType: GovernanceResourceType;
+    operation?: 'CREATE' | 'ALTER' | 'DELETE';
+    virtual?: boolean;
+    resource: Record<string, unknown>;
+    principal: string;
+    service: string;
+    rule?: GovernanceRuleView;
+}
+
+export type GovernanceTraceOutcome = 'PASS' | 'FAIL' | 'ERROR' | 'SKIPPED' | 'EXEMPTED';
+
+export interface GovernanceNodeTraceView {
+    name: string;
+    outcome: GovernanceTraceOutcome;
+    detail: string | null;
+    checks: GovernanceNodeTraceView[];
+}
+
+export interface GovernanceRuleTraceView {
+    rule: string;
+    outcome: GovernanceTraceOutcome;
+    detail: string | null;
+    exemptedBy: string | null;
+    path: string[];
+    message: string | null;
+    subRules: GovernanceNodeTraceView[];
+}
+
+export interface GovernanceDryRunView {
+    allowed: boolean;
+    exemptedBy: string | null;
+    rules: GovernanceRuleTraceView[];
 }
