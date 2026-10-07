@@ -1,8 +1,143 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
 import { fetchApi } from './fetchApi';
+import { ApiError } from './error';
+import { useAuthStore } from '@/stores/auth';
+
+/// An in-memory `localStorage`: Node's own global shadows jsdom's and is unusable without a file.
+function memoryStorage(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> {
+    const items = new Map<string, string>();
+    return {
+        getItem: (key) => items.get(key) ?? null,
+        setItem: (key, value) => void items.set(key, value),
+        removeItem: (key) => void items.delete(key),
+    };
+}
+
+beforeEach(() => {
+    vi.stubGlobal('localStorage', memoryStorage());
+    setActivePinia(createPinia());
+});
 
 afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+});
+
+/// A token response as the admin server's `POST /oauth/token` returns it.
+function tokens(access: string, refresh: string, expiresIn = 900): Response {
+    return new Response(JSON.stringify({
+        access_token: access, token_type: 'Bearer', expires_in: expiresIn, refresh_token: refresh,
+    }), { status: 200 });
+}
+
+function json(body: unknown, status = 200): Response {
+    return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+}
+
+describe('admin session', () => {
+    const ADMIN = 'http://localhost:8080';
+
+    /// A signed-in session, as a returning user has it in storage.
+    async function signIn(expiresIn = 900): Promise<void> {
+        localStorage.setItem('kawa.auth', JSON.stringify({
+            accessToken: 'access-1', refreshToken: 'refresh-1', accessExpiresAt: Date.now() + expiresIn * 1000, username: 'admin',
+        }));
+    }
+
+    it('sends no Authorization header without a session', async () => {
+        // given
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(json([]));
+
+        // when
+        await fetchApi.listClients();
+
+        // then
+        const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+        expect(init.headers).not.toHaveProperty('authorization');
+    });
+
+    it('sends the access token as a bearer token', async () => {
+        // given
+        await signIn();
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(json([]));
+
+        // when
+        await fetchApi.listClients();
+
+        // then
+        expect(fetchMock).toHaveBeenCalledWith(`${ADMIN}/auth/clients`, expect.objectContaining({
+            headers: expect.objectContaining({ authorization: 'Bearer access-1' }),
+        }));
+    });
+
+    it('refreshes and retries once when the gateway answers 401', async () => {
+        // given
+        await signIn();
+        const fetchMock = vi.spyOn(globalThis, 'fetch')
+            .mockResolvedValueOnce(json({ error: 'unauthorized' }, 401))
+            .mockResolvedValueOnce(tokens('access-2', 'refresh-2'))
+            .mockResolvedValueOnce(json([]));
+
+        // when
+        const result = await fetchApi.listClients();
+
+        // then
+        expect(result).toEqual([]);
+        expect(fetchMock).toHaveBeenNthCalledWith(2, `${ADMIN}/oauth/token`, expect.objectContaining({
+            body: 'grant_type=refresh_token&refresh_token=refresh-1',
+        }));
+        expect(fetchMock).toHaveBeenNthCalledWith(3, `${ADMIN}/auth/clients`, expect.objectContaining({
+            headers: expect.objectContaining({ authorization: 'Bearer access-2' }),
+        }));
+    });
+
+    it('refreshes an access token that is about to expire before sending', async () => {
+        // given
+        await signIn(10);
+        const fetchMock = vi.spyOn(globalThis, 'fetch')
+            .mockResolvedValueOnce(tokens('access-2', 'refresh-2'))
+            .mockResolvedValueOnce(json([]));
+
+        // when
+        await fetchApi.listClients();
+
+        // then
+        expect(fetchMock).toHaveBeenNthCalledWith(1, `${ADMIN}/oauth/token`, expect.anything());
+        expect(fetchMock).toHaveBeenNthCalledWith(2, `${ADMIN}/auth/clients`, expect.objectContaining({
+            headers: expect.objectContaining({ authorization: 'Bearer access-2' }),
+        }));
+    });
+
+    it('drops the session and asks for a login when the refresh fails', async () => {
+        // given
+        await signIn();
+        const auth = useAuthStore();
+        vi.spyOn(globalThis, 'fetch')
+            .mockResolvedValueOnce(json({ error: 'unauthorized' }, 401))
+            .mockResolvedValueOnce(json({ error: 'invalid_grant' }, 400));
+
+        // when
+        const failure = fetchApi.listClients();
+
+        // then
+        await expect(failure).rejects.toEqual(new ApiError('401', 'Your session has expired. Sign in again.'));
+        expect(auth.isAuthenticated).toBe(false);
+        expect(auth.loginRequests).toBe(1);
+    });
+
+    it('asks for a login when the gateway requires one and there is no session', async () => {
+        // given
+        const auth = useAuthStore();
+        vi.spyOn(globalThis, 'fetch').mockResolvedValue(json({ error: 'unauthorized' }, 401));
+
+        // when
+        const failure = fetchApi.listClients();
+
+        // then
+        await expect(failure).rejects.toBeInstanceOf(ApiError);
+        expect(auth.loginRequests).toBe(1);
+    });
 });
 
 describe('auth clients', () => {
