@@ -10,7 +10,7 @@ export const router = createRouter({
 });
 
 router.beforeEach((to) => {
-    if (enableAllPages) return true;
+    if (to.meta.public || enableAllPages) return true;
     // RBAC routes stay reachable without the feature flag, including the parameterized
     // editors (their resolved path never matches the defaultPaths set above). The client
     // editor under /clients/:name/edit is likewise covered by the /clients/ prefix.

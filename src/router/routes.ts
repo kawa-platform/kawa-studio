@@ -2,6 +2,9 @@ import type { RouteRecordRaw } from 'vue-router';
 
 export const routes: RouteRecordRaw[] = [
     { path: '/', redirect: '/topics' },
+    // Public and without the app shell: shown when the gateway requires an admin login.
+    { path: '/login', name: 'login', component: () => import('../pages/login/LoginPage.vue'), meta: { crumb: 'Sign in', public: true, bare: true } },
+    { path: '/auth/callback', name: 'auth-callback', component: () => import('../pages/login/CallbackPage.vue'), meta: { crumb: 'Sign in', public: true, bare: true } },
     { path: '/topics', name: 'topics', component: () => import('../pages/topics/TopicsPage.vue'), meta: { crumb: 'Topics' } },
     { path: '/topics/new', name: 'topic-new', component: () => import('../pages/topics/NewTopicPage.vue'), meta: { crumb: 'New topic' } },
     { path: '/topics/:name/edit', name: 'topic-edit', component: () => import('../pages/topics/NewTopicPage.vue'), meta: { crumb: 'Edit topic' } },

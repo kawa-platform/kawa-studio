@@ -23,6 +23,28 @@ describe('router', () => {
         expect(route.params.name).toBe('b2c-order');
     });
 
+    it('resolves the public login page outside the app shell', () => {
+        const route = router.resolve('/login?redirect=/rbac/roles');
+
+        expect(route.name).toBe('login');
+        expect(route.meta.public).toBe(true);
+        expect(route.meta.bare).toBe(true);
+    });
+
+    it('resolves the public OAuth callback outside the app shell', () => {
+        const route = router.resolve('/auth/callback?code=abc&state=xyz');
+
+        expect(route.name).toBe('auth-callback');
+        expect(route.meta.public).toBe(true);
+        expect(route.meta.bare).toBe(true);
+    });
+
+    it('lets the login page through the feature-flag guard', async () => {
+        await router.push('/login');
+
+        expect(router.currentRoute.value.name).toBe('login');
+    });
+
     it('resolves the topics destination used after editing', () => {
         expect(router.resolve({ name: 'topics' }).fullPath).toBe('/topics');
     });

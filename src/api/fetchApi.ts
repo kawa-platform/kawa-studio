@@ -1,5 +1,6 @@
 import type {KawaApi, AclQuery} from './api';
 import {ApiError} from './error';
+import {useAuthStore} from '@/stores/auth';
 import {
     type Acl,
     type ApiErrorBody,
@@ -21,11 +22,32 @@ import {
 /// different gateway, e.g. VITE_API_BASE=http://other-host:8080 npm run dev.
 const BASE = (import.meta.env.VITE_API_BASE?.trim() || 'http://localhost:8080').replace(/\/$/, '');
 
+/// Sends a request with the admin session's bearer token, if there is one. An access token about
+/// to expire is refreshed first; a 401 is retried once after a refresh. When that does not help,
+/// the session is dropped, the app is asked to show the login page, and the call fails with a
+/// `401` [ApiError]. Without a session (an open gateway) requests go out exactly as before.
+async function send(url: string, init?: RequestInit): Promise<Response> {
+    const auth = useAuthStore();
+    if (auth.expiresSoon()) await auth.refresh();
+    let response = await fetch(url, withAuthorization(init, auth.accessToken));
+    if (response.status === 401 && auth.isAuthenticated && await auth.refresh()) {
+        response = await fetch(url, withAuthorization(init, auth.accessToken));
+    }
+    if (response.status === 401) {
+        auth.requireLogin();
+        throw new ApiError('401', 'Your session has expired. Sign in again.');
+    }
+    return response;
+}
+
+function withAuthorization(init: RequestInit | undefined, token: string | null): RequestInit {
+    const headers: Record<string, string> = {'content-type': 'application/json', ...(init?.headers as Record<string, string> | undefined ?? {})};
+    if (token) headers.authorization = 'Bearer ' + token;
+    return {...init, headers};
+}
+
 async function request<T>(path: string, init?: RequestInit, base = BASE): Promise<T> {
-    const response = await fetch(base + path, {
-        ...init,
-        headers: {'content-type': 'application/json', ...(init?.headers ?? {})},
-    });
+    const response = await send(base + path, init);
     if (response.status === 204) return undefined as T;
     const body = await response.json().catch(() => null);
     if (!response.ok) {
@@ -52,10 +74,7 @@ function query(params: Record<string, string | undefined>): string {
 const ADMIN_BASE = (import.meta.env.VITE_ADMIN_API_BASE?.trim() || 'http://localhost:8080').replace(/\/$/, '');
 
 async function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
-    const response = await fetch(ADMIN_BASE + path, {
-        ...init,
-        headers: {'content-type': 'application/json', ...(init?.headers ?? {})},
-    });
+    const response = await send(ADMIN_BASE + path, init);
     if (response.status === 204) return undefined as T;
     const body = await response.json().catch(() => null);
     if (!response.ok) {

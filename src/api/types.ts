@@ -342,3 +342,20 @@ export interface GovernanceDryRunView {
     exemptedBy: string | null;
     rules: GovernanceRuleTraceView[];
 }
+
+// ── Admin authentication (OAuth token endpoint) ———————————————————————
+
+/// The admin server's `POST /oauth/token` success response (RFC 6749 §5.1).
+export interface TokenResponse {
+    access_token: string;
+    token_type: 'Bearer';
+    /// Access token lifetime in seconds.
+    expires_in: number;
+    refresh_token: string;
+}
+
+/// The admin server's `POST /oauth/token` error response (RFC 6749 §5.2).
+export interface TokenErrorBody {
+    error: string;
+    error_description?: string;
+}

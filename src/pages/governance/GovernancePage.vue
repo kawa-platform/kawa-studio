@@ -227,7 +227,7 @@ const confirmDelete = async (): Promise<void> => {
                     <PatternTable v-for="p in row.patterns" :key="p.variable" :variable="p.variable" :rows="p.rows" />
                 </div>
             </article>
-            <div v-if="!ruleRows.length && query.isSuccess.value" class="empty">No rules{{ resourceFilter ? ' for ' + resourceDef(resourceFilter).label.toLowerCase() + 's' : '' }}. Every request is allowed.</div>
+            <div v-if="!ruleRows.length && query.isSuccess.value" class="empty">No Governance Rules Defined{{ resourceFilter ? ' for ' + resourceDef(resourceFilter).label.toLowerCase() + 's' : '' }}.</div>
         </div>
 
         <!-- Variables -->
