@@ -359,3 +359,31 @@ export interface TokenErrorBody {
     error: string;
     error_description?: string;
 }
+
+// ── Admin users (admin server, /admin/users) ———————————————————————————
+// Accounts that sign in to the admin API. The password is write-only: no view ever carries
+// it or its hash.
+
+/// GET /admin/users item. `id` is a gateway-assigned UUID; `email` is the login name.
+export interface AdminUser {
+    id: string;
+    email: string;
+    displayName: string | null;
+    enabled: boolean;
+    createdAt: string;
+}
+
+/// POST /admin/users body. A new admin user is always enabled; the gateway rejects any other field.
+export interface CreateAdminUserRequest {
+    email: string;
+    password: string;
+    displayName?: string;
+}
+
+/// PATCH /admin/users/{id} body. Absent fields keep their value; an empty `displayName` clears it.
+export interface UpdateAdminUserRequest {
+    email?: string;
+    password?: string;
+    displayName?: string;
+    enabled?: boolean;
+}

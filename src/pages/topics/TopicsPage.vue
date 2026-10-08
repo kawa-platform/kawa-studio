@@ -99,11 +99,13 @@ const confirmDelete = async (): Promise<void> => {
 <template>
     <div>
         <div class="head">
-            <h1>Topics</h1>
-            <p class="lede">
-                Virtual topics are the names clients see. Each maps to exactly one physical topic upstream; a
-                physical topic may back many virtual names.
-            </p>
+            <div>
+                <h1>Topics</h1>
+                <p class="lede">
+                    Virtual topics are the names clients see. Each maps to exactly one physical topic upstream; a
+                    physical topic may back many virtual names.
+                </p>
+            </div>
             <button class="btn btn-primary" @click="router.push('/topics/new')">
                 <i class="ph-duotone ph-plus" />New topic
             </button>

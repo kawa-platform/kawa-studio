@@ -6,7 +6,7 @@ export const enableAllPages = import.meta.env.VITE_ENABLE_ALL_PAGES === 'on';
 export const defaultPaths = new Set([
     '/topics', '/topics/new', '/clients', '/clients/new', '/clients/access',
     '/rbac/roles', '/rbac/roles/new', '/rbac/groups', '/rbac/groups/new',
-    '/governance'
+    '/governance', '/admin/users', '/admin/users/new',
 ]);
 const isDefaultPath = (path?: string): boolean => !!path && defaultPaths.has(path);
 
@@ -45,6 +45,7 @@ const allNavSections: NavSection[] = [
     },
     {
         title: 'Platform', items: [
+            { label: 'Admin users', icon: 'ph-user-gear', to: '/admin/users' },
             { label: 'Gateway config', icon: 'ph-sliders-horizontal', soon: true },
         ],
     },

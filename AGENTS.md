@@ -1,6 +1,6 @@
 # kawa-ui
 
-Admin UI for the kawa Kafka access gateway. Vue 3 SPA served under `/admin/`.
+Admin UI for the kawa Kafka Gateway. Vue 3 SPA served under `/admin/`.
 
 ## Commands
 

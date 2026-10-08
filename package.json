@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Admin UI for the kawa Kafka access gateway",
+  "description": "Admin UI for the kawa Kafka Gateway",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
