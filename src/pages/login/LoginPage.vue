@@ -87,7 +87,7 @@ const submit = async (): Promise<void> => {
                 <span class="mark" aria-hidden="true">川</span>
                 <span class="wordmark">kawa</span>
             </div>
-            <p class="kicker">Kafka access gateway</p>
+            <p class="kicker">Kafka Gateway</p>
 
             <h1 class="tagline">A high-performance, application-level gateway for Apache&nbsp;Kafka.</h1>
             <p class="pitch">

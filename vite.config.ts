@@ -23,6 +23,9 @@ export default defineConfig({
     },
     server: {
         port: 5173,
+        // The gateway's CORS allowedOrigins and OAuth redirectUris only list :5173, so fail
+        // instead of silently falling back to :5174 when the port is taken.
+        strictPort: true,
     },
     test: {
         environment: 'jsdom',

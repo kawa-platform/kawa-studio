@@ -45,13 +45,21 @@ html[data-theme='dark'] {
     --row-hover: #0c2238;
     --muted: #adc0d2;
     --faint: color-mix(in srgb, #adc0d2 72%, transparent);
+    /* Modern surfaces: floating panels, the active nav pill, focus ring and the canvas glow. */
+    --panel: color-mix(in srgb, #07182b 88%, transparent);
+    --panel-line: color-mix(in srgb, #adc0d2 12%, transparent);
+    --nav-active-bg: color-mix(in srgb, #c9a227 16%, transparent);
+    --nav-active-fg: #ffffff;
+    --ring: color-mix(in srgb, #22d3ee 32%, transparent);
+    --glow-1: color-mix(in srgb, #22d3ee 9%, transparent);
+    --glow-2: color-mix(in srgb, #c9a227 7%, transparent);
     --font-heading: 'Geist', system-ui, sans-serif;
     --font-body: 'Geist', system-ui, sans-serif;
     --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
 }
 
 html[data-theme='light'] {
-    --color-bg: #f5f7fa;
+    --color-bg: #eef2f7;
     --color-surface: #ffffff;
     --color-elevated: #ffffff;
     --color-text: #020617;
@@ -63,7 +71,7 @@ html[data-theme='light'] {
     --brand: #f5c518;
     --on-brand: #0f172a;
     --brand-text: #a06e00;
-    --color-divider: #cbd5e1;
+    --color-divider: #dbe2ea;
     --color-neutral-100: #f1f5f9;
     --color-neutral-200: #e2e8f0;
     --color-neutral-300: #cbd5e1;
@@ -85,37 +93,57 @@ html[data-theme='light'] {
     --color-accent-2-100: #fee2e2;
     --color-accent-2-600: #dc2626;
     --color-accent-2-700: #b91c1c;
-    --color-accent-2-800: #ffffff;
+    --color-accent-2-800: #991b1b;
     --code-pink: #b0457c;
     --on-accent: #ffffff;
-    --chrome: #f8fafc;
-    --chrome-line: #cbd5e1;
-    --row-hover: #e0f2fe;
+    --chrome: #ffffff;
+    --chrome-line: #e4e9f0;
+    --row-hover: color-mix(in srgb, #0891b2 6%, transparent);
     --muted: #475569;
     --faint: #64748b;
+    --panel: color-mix(in srgb, #ffffff 86%, transparent);
+    --panel-line: color-mix(in srgb, #0b1a2e 8%, transparent);
+    /* The active nav pill uses the dark theme's Oxford navy, so light mode keeps its ink. */
+    --nav-active-bg: #0c2238;
+    --nav-active-fg: #ffffff;
+    --ring: color-mix(in srgb, #0891b2 22%, transparent);
+    --glow-1: color-mix(in srgb, #0891b2 10%, transparent);
+    --glow-2: color-mix(in srgb, #f5c518 14%, transparent);
 }
 
 body {
     margin: 0;
-    background: var(--color-bg);
+    /* A faint accent glow top-right and a brand glow bottom-left keep the canvas from reading flat. */
+    background:
+        radial-gradient(1100px 620px at 100% -8%, var(--glow-1), transparent 70%),
+        radial-gradient(900px 560px at -8% 108%, var(--glow-2), transparent 70%),
+        var(--color-bg);
+    background-attachment: fixed;
     color: var(--color-text);
     font-family: var(--font-body);
-font-size: 17px;
+    font-size: 17px;
     -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); letter-spacing: -0.011em; }
+h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); letter-spacing: -0.015em; }
 h1 {
     font-size: 30px;
-    margin: 0 0 3px;
-    padding-top: 9px;
-    border-top: 2px solid var(--brand);
-    display: inline-block;
+    font-weight: 650;
+    letter-spacing: -0.025em;
+    margin: 0 0 6px;
 }
 
-/* Section heads carry a small brand marker; the accent stays out of the sidebar. */
-h4, .dialog-title { font-size: 15px; box-shadow: inset 3px 0 0 var(--brand); padding-left: 10px; }
-.dialog-title { font-size: 17px; }
+/* Section heads carry a small rounded brand marker; the accent stays out of the sidebar. */
+h4, .dialog-title { font-size: 15px; display: flex; align-items: center; gap: 9px; }
+h4::before {
+    content: '';
+    width: 4px;
+    height: 14px;
+    flex: none;
+    border-radius: 4px;
+    background: var(--brand);
+}
+.dialog-title { font-size: 18px; font-weight: 650; }
 a { color: var(--color-accent-700); }
 a:hover { color: var(--color-accent-400); }
 
@@ -132,12 +160,39 @@ a:hover { color: var(--color-accent-400); }
    monospace — a visibly different face from the hint text around it. */
 .hint code { font-family: var(--mono); }
 
-.btn { font-family: var(--font-body); font-weight: 500; letter-spacing: 0; white-space: nowrap; flex: none; }
-.btn-primary { color: var(--on-accent); }
+.btn {
+    font-family: var(--font-body);
+    font-weight: 500;
+    letter-spacing: 0;
+    white-space: nowrap;
+    flex: none;
+    min-height: 38px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease, color 140ms ease;
+}
+.btn i { font-size: 16px; }
+.btn-primary {
+    color: var(--on-accent);
+    box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--color-accent) 60%, transparent),
+        inset 0 1px 0 color-mix(in srgb, #ffffff 18%, transparent);
+}
 .btn-primary:hover { background: var(--color-accent-400); color: var(--on-accent); }
+.btn-secondary { background: var(--color-surface); border-color: var(--chrome-line); box-shadow: var(--shadow-sm); }
+.btn-secondary:hover { background: var(--color-surface); border-color: color-mix(in srgb, var(--color-text) 22%, transparent); }
+.btn-ghost { min-height: 32px; padding: 5px 10px; }
+.btn-icon { min-height: 0; padding: 0; border-radius: 50%; }
 .btn-danger { color: var(--color-accent-2-700); }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
 
-.tag { font-family: var(--font-body); font-weight: 500; font-size: 12px; letter-spacing: 0.02em; }
+.tag {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.01em;
+    padding: 3px 10px;
+    border-radius: 999px;
+}
 /* Pending/not-yet-live state — brand yellow, so it reads as forthcoming rather than disabled. */
 .tag-brand {
     background: color-mix(in srgb, var(--brand) 18%, transparent);
@@ -145,7 +200,18 @@ a:hover { color: var(--color-accent-400); }
     border: 1px solid color-mix(in srgb, var(--brand) 45%, transparent);
 }
 
-.input { background: var(--color-surface); font-family: var(--font-body); }
+.input {
+    background: var(--color-surface);
+    font-family: var(--font-body);
+    min-height: 40px;
+    padding: 8px 12px;
+    border-color: var(--chrome-line);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.input:hover { border-color: color-mix(in srgb, var(--color-text) 24%, transparent); }
+.input:focus-visible { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--ring); outline: none; }
 textarea.input, input.input.mono, select.input.mono { font-family: var(--mono); font-size: 14px; }
 
 /* Shared Reka switch primitives.
@@ -174,18 +240,30 @@ textarea.input, input.input.mono, select.input.mono { font-family: var(--mono); 
 }
 .switch-root[data-state='checked'] .switch-thumb { translate: 14px 0; }
 
-.table { font-size: 15.5px; min-width: 100%; }
+.table { font-size: 15px; min-width: 100%; }
 .table th, .table td { white-space: nowrap; }
 .table th {
-    padding: 8px 12px;
-    font-size: 12.5px;
-    letter-spacing: 0.1em;
+    padding: 12px 16px;
+    font-size: 11.5px;
+    letter-spacing: 0.08em;
     font-weight: 600;
     color: var(--faint);
+    border-bottom: 1px solid var(--chrome-line);
+    background: color-mix(in srgb, var(--color-text) 2.5%, transparent);
 }
-.table td { padding: 9px 12px; border-bottom: 1px solid var(--chrome-line); }
+.table td { padding: 12px 16px; border-bottom: 1px solid var(--chrome-line); }
+.table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr { transition: background 120ms ease; }
 .table tbody tr:hover { background: var(--row-hover); }
-.table-scroll { overflow-x: auto; max-width: 100%; }
+/* Tables sit in a rounded card; the scroll box is the card so wide tables keep their corners. */
+.table-scroll {
+    overflow-x: auto;
+    max-width: 100%;
+    background: var(--color-surface);
+    border: 1px solid var(--panel-line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
 
 /* Identifier cells (topic/cluster/client names, principals). Slightly above body for legibility. */
 .cell { font-size: 13.5px; }
@@ -196,8 +274,8 @@ textarea.input, input.input.mono, select.input.mono { font-family: var(--mono); 
     font-family: var(--mono);
     background: var(--color-surface);
     border: 1px solid var(--chrome-line);
-    border-left: 2px solid var(--brand);
-    padding: 15px;
+    border-left: 3px solid var(--brand);
+    padding: 15px 16px;
     border-radius: var(--radius-md);
     overflow: auto;
     margin: 0;
@@ -208,8 +286,8 @@ textarea.input, input.input.mono, select.input.mono { font-family: var(--mono); 
     letter-spacing: 0.05em;
     text-transform: uppercase;
     white-space: nowrap;
-    padding: 1px 6px;
-    border-radius: 2px;
+    padding: 2px 8px;
+    border-radius: 999px;
     display: inline-flex;
     border: 1px solid var(--color-neutral-400);
     color: var(--color-neutral-600);
@@ -217,24 +295,46 @@ textarea.input, input.input.mono, select.input.mono { font-family: var(--mono); 
 .pill-accent { border-color: var(--color-accent); color: var(--color-accent-700); }
 .pill-brand { border-color: var(--brand); color: var(--brand-text); }
 
+/* Headline numbers as a row of tiles. */
 .stat-strip {
-    display: flex;
-    flex-wrap: wrap;
-    column-gap: 34px;
-    row-gap: 2px;
-    border-top: 1px solid var(--chrome-line);
-    border-bottom: 1px solid var(--chrome-line);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
 }
-.stat { padding: 12px 0; min-width: 96px; }
+.stat-strip .stat {
+    padding: 16px 18px;
+    min-width: 0;
+    background: var(--color-surface);
+    border: 1px solid var(--panel-line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
 .stat-label {
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    font-weight: 500;
     white-space: nowrap;
-    color: var(--brand-text);
-    margin-bottom: 3px;
+    color: var(--muted);
+    margin-bottom: 10px;
 }
-.stat-value { font-family: var(--font-heading); font-weight: 600; font-size: 20px; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.stat-label::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--brand);
+}
+.stat-value {
+    font-family: var(--font-heading);
+    font-weight: 650;
+    font-size: 30px;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
 
 /* Reka UI renders unstyled elements; these are the only rules its primitives need. */
 [data-reka-popper-content-wrapper] { z-index: 40; }
@@ -243,9 +343,10 @@ textarea.input, input.input.mono, select.input.mono { font-family: var(--mono); 
     overflow-y: auto;
     overflow-x: hidden;
     background: var(--chrome);
-    border: 1px solid var(--color-divider);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
+    border: 1px solid var(--chrome-line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 4px;
     width: var(--reka-combobox-trigger-width);
 }
 .option {
@@ -256,12 +357,18 @@ textarea.input, input.input.mono, select.input.mono { font-family: var(--mono); 
     cursor: pointer;
     min-width: 0;
     overflow: hidden;
-    border-bottom: 1px solid var(--chrome-line);
+    border-radius: var(--radius-sm);
 }
 .option[data-highlighted] { background: var(--row-hover); outline: none; }
 .option[data-state='checked'] { background: color-mix(in srgb, var(--color-accent) 14%, transparent); }
 
-.overlay { position: fixed; inset: 0; background: color-mix(in srgb, #020b18 72%, transparent); z-index: 50; }
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: color-mix(in srgb, #020b18 55%, transparent);
+    backdrop-filter: blur(6px);
+    z-index: 50;
+}
 .modal {
     position: fixed;
     top: 50%;
@@ -272,18 +379,19 @@ textarea.input, input.input.mono, select.input.mono { font-family: var(--mono); 
     max-height: calc(100vh - 40px);
     overflow-y: auto;
     background: var(--chrome);
-    border: 1px solid var(--chrome-line);
-    border-radius: var(--radius-lg);
+    border: 1px solid var(--panel-line);
+    border-radius: var(--radius-xl);
     box-shadow: var(--shadow-lg);
-    padding: var(--space-6);
+    padding: 28px;
 }
 .drawer {
     position: fixed;
-    inset: 0 0 0 auto;
+    inset: 12px 12px 12px auto;
     z-index: 51;
-    width: min(520px, 94vw);
+    width: min(520px, calc(100vw - 24px));
     background: var(--chrome);
-    border-left: 1px solid var(--chrome-line);
+    border: 1px solid var(--panel-line);
+    border-radius: var(--radius-xl);
     box-shadow: var(--shadow-lg);
     overflow-y: auto;
 }
@@ -294,20 +402,66 @@ textarea.input, input.input.mono, select.input.mono { font-family: var(--mono); 
 ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--color-text) 26%, transparent); border-radius: 8px; }
 ::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--color-text) 40%, transparent); }
 
-/* Underlined view tabs (Clients, Governance). */
-.view-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--chrome-line); margin-bottom: 16px; }
+/* View tabs (Clients, Governance) as a segmented pill control. */
+.view-tabs {
+    display: inline-flex;
+    gap: 2px;
+    padding: 4px;
+    margin-bottom: 18px;
+    background: color-mix(in srgb, var(--color-text) 5%, transparent);
+    border: 1px solid var(--panel-line);
+    border-radius: 999px;
+}
 .tab {
-    padding: 8px 14px;
+    padding: 7px 16px;
     font: inherit;
     font-size: 13.5px;
     font-weight: 500;
-    color: color-mix(in srgb, var(--color-text) 72%, transparent);
+    color: var(--muted);
     text-decoration: none;
     background: none;
     border: none;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
+    border-radius: 999px;
     cursor: pointer;
+    transition: background 140ms ease, color 140ms ease;
 }
 .tab:hover { color: var(--color-text); }
-.tab-on { color: var(--color-text); border-bottom-color: var(--brand); font-weight: 600; }
+.tab-on {
+    color: var(--nav-active-fg);
+    background: var(--nav-active-bg);
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Create/edit forms: each numbered section is its own card. */
+.form { max-width: 720px; }
+.form section {
+    padding: 20px 22px 6px;
+    background: var(--color-surface);
+    border: 1px solid var(--panel-line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 16px;
+}
+.form section > h2 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding-left: 0;
+    box-shadow: none;
+    margin-bottom: 16px;
+}
+.form section > h2::before {
+    content: '';
+    width: 4px;
+    height: 14px;
+    flex: none;
+    border-radius: 4px;
+    background: var(--brand);
+}
+.form .actions { margin-top: 20px; }
+
+/* Segmented controls and radio groups follow the pill shape. */
+.seg { border-radius: 999px; padding: 3px; gap: 2px; border-color: var(--chrome-line); background: var(--color-surface); }
+.seg-opt { border-radius: 999px; }
+.seg-opt + .seg-opt { border-left: none; }

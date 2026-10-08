@@ -3,6 +3,7 @@ import {ApiError} from './error';
 import {useAuthStore} from '@/stores/auth';
 import {
     type Acl,
+    type AdminUser,
     type ApiErrorBody,
     type AuthClientView,
     type Client,
@@ -194,4 +195,17 @@ export const fetchApi: KawaApi = {
         adminRequest<void>(`/governance/variables/${encodeURIComponent(name)}?consistency=applied`, {method: 'DELETE'}),
     dryRunGovernance: (body) =>
         adminRequest<GovernanceDryRunView>('/governance/dry-run', {method: 'POST', body: JSON.stringify(body)}),
+
+    // Admin users — admin server. PATCH carries only the fields that change, so an edit never
+    // resets the password.
+    listAdminUsers: () => adminRequest<AdminUser[]>('/admin/users'),
+    createAdminUser: (body) =>
+        adminRequest<AdminUser>('/admin/users', {method: 'POST', body: JSON.stringify(body)}),
+    updateAdminUser: (id, body) =>
+        adminRequest<AdminUser>(`/admin/users/${encodeURIComponent(id)}`, {
+            method: 'PATCH',
+            body: JSON.stringify(body),
+        }),
+    deleteAdminUser: (id) =>
+        adminRequest<void>(`/admin/users/${encodeURIComponent(id)}`, {method: 'DELETE'}),
 };

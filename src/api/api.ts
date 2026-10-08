@@ -1,11 +1,11 @@
 import { inject, type InjectionKey } from 'vue';
 import type {
-    Acl, AuthClientView, Client, CreateAclRequest, CreateClientRequest,
-    CreatePhysicalTopicRequest, CreatePhysicalTopicResult,
+    Acl, AdminUser, AuthClientView, Client, CreateAclRequest, CreateClientRequest,
+    CreateAdminUserRequest, CreatePhysicalTopicRequest, CreatePhysicalTopicResult,
     GovernanceDryRunRequest, GovernanceDryRunView,
     GovernanceExemptionView, GovernanceRuleView, GovernanceVariableView, GovernanceView,
     GroupConfig, GroupConfigPatch, GroupView, PublishRequest, PublishResult, RoleConfig, RoleView,
-    SchemaDetail, SchemaListing, Topic, TopicType, ClientConfigPatch, Clusters,
+    SchemaDetail, SchemaListing, Topic, TopicType, ClientConfigPatch, Clusters, UpdateAdminUserRequest,
     VirtualTopicConfig, VirtualTopicPatch,
 } from './types';
 
@@ -59,6 +59,12 @@ export interface KawaApi {
     upsertGovernanceVariable(name: string, request: GovernanceVariableView): Promise<GovernanceVariableView>;
     deleteGovernanceVariable(name: string): Promise<void>;
     dryRunGovernance(request: GovernanceDryRunRequest): Promise<GovernanceDryRunView>;
+
+    /** Admin users — the accounts that sign in to the admin API, keyed by a gateway-assigned id. */
+    listAdminUsers(): Promise<AdminUser[]>;
+    createAdminUser(request: CreateAdminUserRequest): Promise<AdminUser>;
+    updateAdminUser(id: string, request: UpdateAdminUserRequest): Promise<AdminUser>;
+    deleteAdminUser(id: string): Promise<void>;
 }
 
 export const apiKey: InjectionKey<KawaApi> = Symbol('kawa-api');

@@ -36,7 +36,7 @@ watch(() => auth.loginRequests, () => {
 <style scoped>
 .shell { min-height: 100vh; display: flex; }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.page { padding: 24px 28px 72px; max-width: 1440px; }
+.page { padding: 28px 32px 72px; width: 100%; max-width: 1440px; }
 
 .toast-viewport {
     position: fixed;

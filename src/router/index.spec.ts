@@ -48,4 +48,19 @@ describe('router', () => {
     it('resolves the topics destination used after editing', () => {
         expect(router.resolve({ name: 'topics' }).fullPath).toBe('/topics');
     });
+
+    it('resolves the admin users page and its editors under /admin/users', () => {
+        expect(router.resolve('/admin/users').name).toBe('admin-users');
+        expect(router.resolve('/admin/users/new').name).toBe('admin-user-new');
+        const edit = router.resolve('/admin/users/6f1c0e1a-0000-4000-8000-000000000001/edit');
+        expect(edit.name).toBe('admin-user-edit');
+        expect(edit.params.id).toBe('6f1c0e1a-0000-4000-8000-000000000001');
+        expect(edit.meta.crumb).toBe('Edit admin user');
+    });
+
+    it('lets the admin user editor through the feature-flag guard', async () => {
+        await router.push('/admin/users/6f1c0e1a-0000-4000-8000-000000000001/edit');
+
+        expect(router.currentRoute.value.name).toBe('admin-user-edit');
+    });
 });
