@@ -19,7 +19,7 @@ Vue 3.5 (`<script setup lang="ts">`), Vite 7, TypeScript 5.9 (strict, `verbatimM
 ```
 src/
   api/          Backend contract: api.ts (KawaApi interface + useApi()), fetchApi.ts (fetch impl), types.ts (DTOs), error.ts (ApiError)
-  assets/       Global CSS (broadsheet.css, theme.css)
+  styles/       Specs guarding the global styles Studio takes from @kawa/design
   components/   Shared app components (AppSidebar, DataTable, ConfirmDialog, …)
   lib/          Pure helpers shared across ≥2 features
   pages/        Feature modules — one directory per feature:
@@ -43,9 +43,11 @@ src/
 - **Types**: DTOs live in `src/api/types.ts`; use `import type` (verbatimModuleSyntax).
 - **Tests**: colocated `*.spec.ts`, Vitest + @vue/test-utils; mock `@/api` and `@tanstack/vue-query`.
 - **Style**: 4-space indent, `///` doc comments, `@/` alias imports.
-- **Form pages**: every create/edit page roots itself in `class="form"`; the measure (640px), head, numbered `section > h2`, `.row` pairs, action bar and hint/error text come from the shared `.form` block in `broadsheet.css`. Do not re-declare that chrome in a page's `<style scoped>` — only feature-specific bits (tabs, banners, CEL editors) belong there.
+- **Form pages**: every create/edit page roots itself in `class="form"`; the measure (640px), head, numbered `section > h2`, `.row` pairs, action bar and hint/error text come from the shared `.form` block in `@kawa/design` (`components.css`). Do not re-declare that chrome in a page's `<style scoped>` — only feature-specific bits (tabs, banners, CEL editors) belong there.
 
 ## Gotchas
+
+- Global styles (tokens, base, components) come from the `@kawa/design` package (kawa-platform/kawa-design), shared with kawa-docs. Change them there and release a new tag; a page's `<style scoped>` only holds what is specific to that page.
 
 - Base path is `/admin/` (Vite `base` + router history + nginx).
 - Dev: Vite proxies `/api` → `:8080`; the admin server (RBAC, auth clients, virtual topics) is called directly via CORS (`VITE_ADMIN_API_BASE`, default `http://localhost:8080`).

@@ -107,7 +107,7 @@ watch(collapsed, (next) => {
                 </button>
             </div>
             <div v-if="!collapsed" class="version">
-                <span>kawa 0.9.2</span><span>native-image</span>
+<!--                <span>kawa 0.9.2</span><span>studio 0.9.3</span>-->
             </div>
         </div>
     </aside>

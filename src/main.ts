@@ -6,8 +6,7 @@ import { router } from './router';
 import { apiKey } from './api/api';
 import { ApiError } from './api/error';
 import { fetchApi } from './api/fetchApi';
-import './assets/broadsheet.css';
-import './assets/theme.css';
+import '@kawa/design/index.css';
 
 /// There is one API adapter: a fetch client against the gateway. In dev it calls the
 /// backend directly; in production nginx forwards the same paths to the gateway.
