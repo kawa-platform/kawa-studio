@@ -6,8 +6,16 @@ import { RouterLink } from 'vue-router';
 import AppSidebar from './AppSidebar.vue';
 import { router } from '@/router';
 
+const mocks = vi.hoisted(() => ({ disabled: [] as string[] }));
+
+vi.mock('@/pages/modules/queries', async () => {
+    const { computed } = await import('vue');
+    return { useDisabledModules: () => computed(() => new Set(mocks.disabled)) };
+});
+
 describe('AppSidebar', () => {
     beforeEach(() => {
+        mocks.disabled = [];
         vi.stubGlobal('localStorage', {
             getItem: () => null,
             setItem: () => undefined,
@@ -51,5 +59,19 @@ describe('AppSidebar', () => {
 
         expect(parentLink.exists()).toBe(true);
         expect(matchingLink.classes()).toContain('nav-item-on');
+    });
+
+    it('keeps the pages of a disabled module clickable and marks them off', () => {
+        // given
+        mocks.disabled = ['governance'];
+
+        // when
+        const wrapper = mount(AppSidebar, { global: { plugins: [createPinia(), router] } });
+
+        // then
+        const governance = wrapper.get('a[href="/admin/governance"]');
+        expect(governance.classes()).toContain('nav-item-off');
+        expect(governance.find('.off').text()).toBe('off');
+        expect(wrapper.get('a[href="/admin/topics"]').classes()).not.toContain('nav-item-off');
     });
 });

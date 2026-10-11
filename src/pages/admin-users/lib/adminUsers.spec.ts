@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '@/api/error';
-import type { AdminUser } from '@/api/types';
+import type { AdminUserView } from '@/api/types';
 import { changesOf, errorsOf, isCurrentUser, validateCreate, validateEmail } from './adminUsers';
 
-const user = (overrides: Partial<AdminUser> = {}): AdminUser => ({
+const user = (overrides: Partial<AdminUserView> = {}): AdminUserView => ({
     id: '6f1c0e1a-0000-4000-8000-000000000001',
     email: 'ops@example.com',
     displayName: 'Ops',

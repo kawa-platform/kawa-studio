@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import { ToastProvider, ToastViewport } from 'reka-ui';
 import AppSidebar from '@/components/AppSidebar.vue';
 import AppTopbar from '@/components/AppTopbar.vue';
+import ModuleDisabledBanner from '@/components/ModuleDisabledBanner.vue';
 import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
@@ -25,6 +26,7 @@ watch(() => auth.loginRequests, () => {
             <main class="main">
                 <AppTopbar />
                 <div class="page">
+                    <ModuleDisabledBanner />
                     <RouterView />
                 </div>
             </main>

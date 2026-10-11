@@ -1,11 +1,11 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/api/error';
-import type { AdminUser } from '@/api/types';
+import type { AdminUserView } from '@/api/types';
 import AdminUsersPage from './AdminUsersPage.vue';
 
 const mocks = vi.hoisted(() => ({
-    users: [] as AdminUser[] | undefined,
+    users: [] as AdminUserView[] | undefined,
     error: null as Error | null,
     refetch: vi.fn(),
     update: vi.fn(),
@@ -32,7 +32,7 @@ vi.mock('@/stores/auth', () => ({
     useAuthStore: () => ({ username: mocks.username }),
 }));
 
-const user = (email: string, overrides: Partial<AdminUser> = {}): AdminUser => ({
+const user = (email: string, overrides: Partial<AdminUserView> = {}): AdminUserView => ({
     id: 'id-' + email,
     email,
     displayName: null,
@@ -103,7 +103,7 @@ describe('AdminUsersPage', () => {
 
     it('never renders a password or hash', () => {
         // given
-        mocks.users = [{ ...user('ops@example.com'), password: 'PBKDF2:secret-hash' } as AdminUser];
+        mocks.users = [{ ...user('ops@example.com'), password: 'PBKDF2:secret-hash' } as AdminUserView];
 
         // when
         const wrapper = mountPage();

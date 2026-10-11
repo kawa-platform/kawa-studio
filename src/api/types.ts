@@ -343,7 +343,7 @@ export interface GovernanceDryRunView {
     rules: GovernanceRuleTraceView[];
 }
 
-// ── Admin authentication (OAuth token endpoint) ———————————————————————
+// ── Admin authentication ———————————————————————
 
 /// The admin server's `POST /oauth/token` success response (RFC 6749 §5.1).
 export interface TokenResponse {
@@ -365,7 +365,7 @@ export interface TokenErrorBody {
 // it or its hash.
 
 /// GET /admin/users item. `id` is a gateway-assigned UUID; `email` is the login name.
-export interface AdminUser {
+export interface AdminUserView {
     id: string;
     email: string;
     displayName: string | null;
@@ -386,4 +386,17 @@ export interface UpdateAdminUserRequest {
     password?: string;
     displayName?: string;
     enabled?: boolean;
+}
+
+// ── Admin Modules ———————————————————————
+
+/// GET /modules: a gateway module and whether it is enabled.
+export interface ModuleView {
+    id: string;
+    enabled: boolean;
+}
+
+/// PUT /modules/{id} body: switches the module on or off on every gateway replica.
+export interface UpdateModuleRequest {
+    enabled: boolean;
 }

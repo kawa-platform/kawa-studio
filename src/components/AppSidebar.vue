@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { navSections } from '@/router';
+import { useDisabledModules } from '@/pages/modules/queries';
 import { useUiStore } from '@/stores/ui';
 
 const ui = useUiStore();
@@ -11,6 +12,10 @@ const route = useRoute();
 
 const isNavItemActive = (to?: string): boolean =>
     !!to && (route.path === to || route.path.startsWith(`${to}/`));
+
+/// Pages of a disabled module stay usable; their nav item is only marked off.
+const disabledModules = useDisabledModules();
+const isOff = (module?: string): boolean => !!module && disabledModules.value.has(module);
 
 /// Collapsed state is a per-operator preference, so it lives in local storage rather
 /// than the URL.
@@ -52,10 +57,18 @@ watch(collapsed, (next) => {
                 </div>
                 <div v-else class="group-rule" />
                 <template v-for="item in group.items" :key="item.label">
-                    <RouterLink v-if="item.to" :to="item.to" class="nav-item" :class="{ 'nav-item-nested': item.level === 1, 'nav-item-on': isNavItemActive(item.to) }" :title="item.label">
+                    <RouterLink
+                        v-if="item.to && !item.soon"
+                        :to="item.to"
+                        class="nav-item"
+                        :class="{ 'nav-item-nested': item.level === 1, 'nav-item-on': isNavItemActive(item.to), 'nav-item-off': isOff(item.module) }"
+                        :title="isOff(item.module) ? `${item.label} (module disabled)` : item.label"
+                    >
                         <span v-if="item.level === 1 && !collapsed" class="tree-guide" />
                         <i :class="['ph-duotone', item.icon]" />
-                        <span v-if="!collapsed">{{ item.label }}</span>
+                        <span v-if="!collapsed" class="grow">{{ item.label }}</span>
+                        <span v-if="isOff(item.module) && !collapsed" class="off">off</span>
+                        <span v-else-if="isOff(item.module)" class="off-dot" aria-hidden="true" />
                     </RouterLink>
                     <div v-else class="nav-item nav-item-soon" aria-disabled="true" :title="item.label">
                         <i :class="['ph-duotone', item.icon]" />
@@ -218,6 +231,29 @@ nav { padding: 6px 12px 16px; display: flex; flex-direction: column; overflow-y:
 .nav-item-soon:hover { background: none; color: var(--faint); }
 :global(html[data-theme='dark']) .nav-item-soon { color: var(--faint); }
 .grow { margin-right: auto; }
+
+/* A disabled module's page: still a link, marked off. */
+.nav-item-off i { opacity: 0.55; }
+.off {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+.nav-item-on .off { color: var(--nav-active-fg); background: color-mix(in srgb, var(--nav-active-fg) 16%, transparent); }
+.off-dot {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--warning);
+}
 .soon {
     font-size: 10px;
     font-weight: 600;

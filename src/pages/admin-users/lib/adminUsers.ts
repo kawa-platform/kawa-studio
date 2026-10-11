@@ -1,5 +1,5 @@
 import { ApiError } from '@/api/error';
-import type { AdminUser, UpdateAdminUserRequest } from '@/api/types';
+import type { AdminUserView, UpdateAdminUserRequest } from '@/api/types';
 
 /// The gateway's own check: a local part and a domain around a single `@`, no whitespace. The
 /// domain needs no dot, so `admin@kawa` is valid.
@@ -34,7 +34,7 @@ export function validateCreate(form: AdminUserDraft & { password: string; confir
 
 /// The PATCH body for an edit: only the fields that changed, so saving never touches the
 /// password or the enabled state. An emptied display name is sent as `""`, which clears it.
-export function changesOf(existing: AdminUser, draft: AdminUserDraft): UpdateAdminUserRequest {
+export function changesOf(existing: AdminUserView, draft: AdminUserDraft): UpdateAdminUserRequest {
     const patch: UpdateAdminUserRequest = {};
     const email = draft.email.trim().toLowerCase();
     if (email !== existing.email) patch.email = email;
@@ -66,10 +66,10 @@ function fieldOf(message: string): string {
 
 /// Whether `user` is the signed-in admin. The session's username is the token's
 /// `preferred_username`, which kawa sets to the admin's email.
-export function isCurrentUser(user: AdminUser, sessionUsername: string | null): boolean {
+export function isCurrentUser(user: AdminUserView, sessionUsername: string | null): boolean {
     return !!sessionUsername && user.email === sessionUsername.toLowerCase();
 }
 
-export function labelOf(user: AdminUser): string {
+export function labelOf(user: AdminUserView): string {
     return user.displayName ? `${user.displayName} (${user.email})` : user.email;
 }

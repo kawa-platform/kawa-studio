@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { useApi } from '@/api/api';
 import { ApiError } from '@/api/error';
-import type { AdminUser, CreateAdminUserRequest, UpdateAdminUserRequest } from '@/api/types';
+import type { AdminUserView, CreateAdminUserRequest, UpdateAdminUserRequest } from '@/api/types';
 import { keys } from '@/queries/keys';
 
 export function useAdminUsers() {
     const api = useApi();
-    return useQuery<AdminUser[]>({
+    return useQuery<AdminUserView[]>({
         queryKey: keys.adminUsers(),
         queryFn: () => api.listAdminUsers(),
     });
@@ -15,7 +15,7 @@ export function useAdminUsers() {
 export function useCreateAdminUser() {
     const api = useApi();
     const client = useQueryClient();
-    return useMutation<AdminUser, ApiError, CreateAdminUserRequest>({
+    return useMutation<AdminUserView, ApiError, CreateAdminUserRequest>({
         mutationFn: (body) => api.createAdminUser(body),
         onSuccess: () => client.invalidateQueries({ queryKey: keys.adminUsers() }),
     });
@@ -24,7 +24,7 @@ export function useCreateAdminUser() {
 export function useUpdateAdminUser() {
     const api = useApi();
     const client = useQueryClient();
-    return useMutation<AdminUser, ApiError, { id: string; body: UpdateAdminUserRequest }>({
+    return useMutation<AdminUserView, ApiError, { id: string; body: UpdateAdminUserRequest }>({
         mutationFn: ({ id, body }) => api.updateAdminUser(id, body),
         onSuccess: () => client.invalidateQueries({ queryKey: keys.adminUsers() }),
     });

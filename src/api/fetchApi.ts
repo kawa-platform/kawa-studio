@@ -3,7 +3,7 @@ import {ApiError} from './error';
 import {useAuthStore} from '@/stores/auth';
 import {
     type Acl,
-    type AdminUser,
+    type AdminUserView,
     type ApiErrorBody,
     type AuthClientView,
     type Client,
@@ -13,7 +13,7 @@ import {
     type GovernanceRuleView,
     type GovernanceVariableView,
     type GovernanceView,
-    type GroupView,
+    type GroupView, type ModuleView,
     type RoleView,
     type Topic,
     type VirtualTopicPatch,
@@ -198,14 +198,21 @@ export const fetchApi: KawaApi = {
 
     // Admin users — admin server. PATCH carries only the fields that change, so an edit never
     // resets the password.
-    listAdminUsers: () => adminRequest<AdminUser[]>('/admin/users'),
+    listAdminUsers: () => adminRequest<AdminUserView[]>('/admin/users'),
     createAdminUser: (body) =>
-        adminRequest<AdminUser>('/admin/users', {method: 'POST', body: JSON.stringify(body)}),
+        adminRequest<AdminUserView>('/admin/users', {method: 'POST', body: JSON.stringify(body)}),
     updateAdminUser: (id, body) =>
-        adminRequest<AdminUser>(`/admin/users/${encodeURIComponent(id)}`, {
+        adminRequest<AdminUserView>(`/admin/users/${encodeURIComponent(id)}`, {
             method: 'PATCH',
             body: JSON.stringify(body),
         }),
     deleteAdminUser: (id) =>
         adminRequest<void>(`/admin/users/${encodeURIComponent(id)}`, {method: 'DELETE'}),
+
+    listModules: () => adminRequest<ModuleView[]>(`/modules`),
+    updateModule: (id, body) =>
+        adminRequest<ModuleView>(`/modules/${encodeURIComponent(id)}`, {
+            method: 'PUT',
+            body: JSON.stringify(body),
+        }),
 };

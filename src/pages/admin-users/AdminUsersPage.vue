@@ -3,7 +3,7 @@ import { computed, h, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { createColumnHelper } from '@tanstack/vue-table';
 import { ApiError } from '@/api/error';
-import type { AdminUser } from '@/api/types';
+import type { AdminUserView } from '@/api/types';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import DataTable from '@/components/DataTable.vue';
 import { useAuthStore } from '@/stores/auth';
@@ -17,12 +17,12 @@ const loadError = computed(() => error.value instanceof ApiError ? error.value.m
 const update = useUpdateAdminUser();
 const remove = useDeleteAdminUser();
 
-const isSelf = (user: AdminUser): boolean => isCurrentUser(user, auth.username);
+const isSelf = (user: AdminUserView): boolean => isCurrentUser(user, auth.username);
 
 type DialogKind = 'password' | 'disable' | 'delete';
 
 const kind = ref<DialogKind | null>(null);
-const target = ref<AdminUser | null>(null);
+const target = ref<AdminUserView | null>(null);
 const pending = ref(false);
 const form = ref({ password: '', confirmPassword: '' });
 const errors = ref<Record<string, string>>({});
@@ -34,7 +34,7 @@ const open = computed({
     set: (value: boolean) => { if (!value) kind.value = null; },
 });
 
-const openDialog = (next: DialogKind, user: AdminUser): void => {
+const openDialog = (next: DialogKind, user: AdminUserView): void => {
     target.value = user;
     form.value = { password: '', confirmPassword: '' };
     errors.value = {};
@@ -42,7 +42,7 @@ const openDialog = (next: DialogKind, user: AdminUser): void => {
     kind.value = next;
 };
 
-const enable = async (user: AdminUser): Promise<void> => {
+const enable = async (user: AdminUserView): Promise<void> => {
     actionError.value = null;
     try {
         await update.mutateAsync({ id: user.id, body: { enabled: true } });
@@ -105,7 +105,7 @@ const asDate = (iso: string): string => {
 const ghost = (label: string, onClick: () => void, danger = false) =>
     h('button', { class: ['btn', 'btn-ghost', { 'btn-danger': danger }], onClick }, label);
 
-const column = createColumnHelper<AdminUser>();
+const column = createColumnHelper<AdminUserView>();
 const columns = [
     column.accessor('email', {
         header: 'Email',

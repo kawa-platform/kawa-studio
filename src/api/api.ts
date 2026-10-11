@@ -1,12 +1,12 @@
 import { inject, type InjectionKey } from 'vue';
 import type {
-    Acl, AdminUser, AuthClientView, Client, CreateAclRequest, CreateClientRequest,
+    Acl, AdminUserView, AuthClientView, Client, CreateAclRequest, CreateClientRequest,
     CreateAdminUserRequest, CreatePhysicalTopicRequest, CreatePhysicalTopicResult,
     GovernanceDryRunRequest, GovernanceDryRunView,
     GovernanceExemptionView, GovernanceRuleView, GovernanceVariableView, GovernanceView,
     GroupConfig, GroupConfigPatch, GroupView, PublishRequest, PublishResult, RoleConfig, RoleView,
     SchemaDetail, SchemaListing, Topic, TopicType, ClientConfigPatch, Clusters, UpdateAdminUserRequest,
-    VirtualTopicConfig, VirtualTopicPatch,
+    VirtualTopicConfig, VirtualTopicPatch, ModuleView, UpdateModuleRequest,
 } from './types';
 
 export interface AclQuery {
@@ -50,7 +50,6 @@ export interface KawaApi {
     deleteVirtualTopic(name: string): Promise<void>;
     createPhysicalTopic(request: CreatePhysicalTopicRequest): Promise<CreatePhysicalTopicResult>;
 
-    /** Governance — admin server. Each write is applied by the gateway on its own. */
     getGovernance(): Promise<GovernanceView>;
     upsertGovernanceRule(name: string, request: GovernanceRuleView): Promise<GovernanceRuleView>;
     deleteGovernanceRule(name: string): Promise<void>;
@@ -61,10 +60,13 @@ export interface KawaApi {
     dryRunGovernance(request: GovernanceDryRunRequest): Promise<GovernanceDryRunView>;
 
     /** Admin users — the accounts that sign in to the admin API, keyed by a gateway-assigned id. */
-    listAdminUsers(): Promise<AdminUser[]>;
-    createAdminUser(request: CreateAdminUserRequest): Promise<AdminUser>;
-    updateAdminUser(id: string, request: UpdateAdminUserRequest): Promise<AdminUser>;
+    listAdminUsers(): Promise<AdminUserView[]>;
+    createAdminUser(request: CreateAdminUserRequest): Promise<AdminUserView>;
+    updateAdminUser(id: string, request: UpdateAdminUserRequest): Promise<AdminUserView>;
     deleteAdminUser(id: string): Promise<void>;
+
+    listModules(): Promise<ModuleView[]>;
+    updateModule(id: string, request: UpdateModuleRequest): Promise<ModuleView>;
 }
 
 export const apiKey: InjectionKey<KawaApi> = Symbol('kawa-api');

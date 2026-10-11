@@ -39,11 +39,11 @@ src/
 - **Feature modules**: every feature follows the shape above. Feature-local composables live in the feature dir (e.g. `pages/topics/useTopicView.ts`); `src/composables/` was removed and must not be re-created.
 - **API**: extend `KawaApi` in `src/api/api.ts` and the impl in `src/api/fetchApi.ts`. Components never call `fetch` directly — use `useApi()`. Import from the exact file (`@/api/api`, `@/api/types`, `@/api/error`) — there is no barrel.
 - **Data fetching**: `useQuery`/`useMutation` from TanStack Vue Query, always keyed from `src/queries/keys.ts`; invalidate after writes.
+- **Data modeling**: all DTOs live in `src/api/types.ts`; Responses have to `View` suffix while `Create` and `Update` have the `Request` suffix.
 - **Types**: DTOs live in `src/api/types.ts`; use `import type` (verbatimModuleSyntax).
 - **Tests**: colocated `*.spec.ts`, Vitest + @vue/test-utils; mock `@/api` and `@tanstack/vue-query`.
 - **Style**: 4-space indent, `///` doc comments, `@/` alias imports.
 - **Form pages**: every create/edit page roots itself in `class="form"`; the measure (640px), head, numbered `section > h2`, `.row` pairs, action bar and hint/error text come from the shared `.form` block in `broadsheet.css`. Do not re-declare that chrome in a page's `<style scoped>` — only feature-specific bits (tabs, banners, CEL editors) belong there.
-- **Feature flag**: `VITE_ENABLE_ALL_PAGES === 'on'` gates non-default routes (see `src/router/nav.ts`).
 
 ## Gotchas
 

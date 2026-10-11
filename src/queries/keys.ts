@@ -11,4 +11,5 @@ export const keys = {
     rbacAuthClients: () => ['rbac', 'auth-clients'] as const,
     governance: () => ['governance'] as const,
     adminUsers: () => ['admin-users'] as const,
+    modules: () => ['modules'] as const,
 };

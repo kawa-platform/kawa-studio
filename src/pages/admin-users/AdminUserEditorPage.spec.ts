@@ -1,12 +1,12 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/api/error';
-import type { AdminUser } from '@/api/types';
+import type { AdminUserView } from '@/api/types';
 import AdminUserEditorPage from './AdminUserEditorPage.vue';
 
 const mocks = vi.hoisted(() => ({
     params: {} as Record<string, string>,
-    users: { value: [] as AdminUser[] },
+    users: { value: [] as AdminUserView[] },
     create: vi.fn(),
     update: vi.fn(),
     push: vi.fn(),
@@ -23,7 +23,7 @@ vi.mock('vue-router', () => ({
     useRouter: () => ({ push: mocks.push }),
 }));
 
-const ops: AdminUser = {
+const ops: AdminUserView = {
     id: 'id-ops',
     email: 'ops@example.com',
     displayName: 'Ops',
