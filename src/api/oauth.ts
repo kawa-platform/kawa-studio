@@ -48,6 +48,19 @@ export function authorizeUrl(challenge: string, state: string): string {
     return ADMIN_BASE + '/oauth/authorize?' + params.toString();
 }
 
+/// Whether the gateway requires a login: asks a protected endpoint without a token, and a 401 means it
+/// does. Sent directly, not through `fetchApi`, which would treat that 401 as an expired session. Any
+/// other answer, or no answer at all, resolves `false`, so the app still opens and its pages report
+/// the problem.
+export async function fetchLoginRequired(): Promise<boolean> {
+    try {
+        const response = await fetch(ADMIN_BASE + '/modules');
+        return response.status === 401;
+    } catch {
+        return false;
+    }
+}
+
 /// Starts an authorization request without leaving the page and returns its login challenge: asked
 /// for JSON, `/oauth/authorize` answers in place instead of redirecting to the login page. Used to
 /// replace a challenge that expired while the login page was open (or that a gateway restart
