@@ -15,7 +15,6 @@ export const routes: RouteRecordRaw[] = [
     { path: '/clients/:name', name: 'client-details', component: () => import('../pages/clients/ClientDetailsPage.vue'), meta: { crumb: 'Client details', module: 'rbac' } },
     { path: '/clients/:name/edit', name: 'client-edit', component: () => import('../pages/clients/ClientEditorPage.vue'), meta: { crumb: 'Edit client', module: 'rbac' } },
     { path: '/clients/access', name: 'clients-access', component: () => import('../pages/clients/EffectiveAccessPage.vue'), meta: { crumb: 'Effective access', module: 'rbac' } },
-    { path: '/acls', name: 'acls', component: () => import('../pages/acls/AclsPage.vue'), meta: { crumb: 'ACLs' } },
     { path: '/rbac/roles', name: 'rbac-roles', component: () => import('../pages/rbac/roles/RolesPage.vue'), meta: { crumb: 'Roles', module: 'rbac' } },
     { path: '/rbac/roles/new', name: 'rbac-role-new', component: () => import('../pages/rbac/roles/RoleEditorPage.vue'), meta: { crumb: 'New role', module: 'rbac' } },
     { path: '/rbac/roles/:name', name: 'rbac-role-details', component: () => import('../pages/rbac/roles/RoleDetailsPage.vue'), meta: { crumb: 'Role details', module: 'rbac' } },

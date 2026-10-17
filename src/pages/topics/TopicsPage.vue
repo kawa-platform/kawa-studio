@@ -8,7 +8,7 @@ import TopicTree from './components/TopicTree.vue';
 import TopicDrawer from './components/TopicDrawer.vue';
 import { buildRows, type TopicView } from './lib/rows';
 import { useTopicView } from './useTopicView';
-import {useAcls, useDeleteVirtualTopic, useTopics} from './queries';
+import {useDeleteVirtualTopic, useTopics} from './queries';
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import { SwitchRoot, SwitchThumb } from 'reka-ui'
 
@@ -20,7 +20,6 @@ const selected = ref<Topic | null>(null);
 const drawerOpen = ref(false);
 
 const { data: topicData, error } = useTopics();
-const { data: aclData } = useAcls();
 
 const showInternalTopics  = ref(false)
 const topics = computed(() => topicData.value ?? []);
@@ -28,7 +27,6 @@ const visibleTopics = computed(() =>
     showInternalTopics.value
         ? topics.value
         : topics.value.filter((t) => !isInternalTopic(t)))
-const acls = computed(() => aclData.value ?? []);
 
 const rows = computed(() => buildRows(visibleTopics.value, view.value, query.value, collapsed.value));
 
@@ -165,7 +163,6 @@ const confirmDelete = async (): Promise<void> => {
             v-model:open="drawerOpen"
             :topic="selected"
             :topics="topics"
-            :acls="acls"
             @open-topic="open"
             @delete-topic="askDelete"
         />

@@ -1,8 +1,7 @@
-import type {KawaApi, AclQuery} from './api';
+import type {KawaApi} from './api';
 import {ApiError} from './error';
 import {useAuthStore} from '@/stores/auth';
 import {
-    type Acl,
     type AdminUserView,
     type ApiErrorBody,
     type AuthClientView,
@@ -118,11 +117,6 @@ export const fetchApi: KawaApi = {
         }),
     deleteClient: (username) =>
         adminRequest<void>(`/auth/clients/${encodeURIComponent(username)}`, {method: 'DELETE'}),
-
-    listAcls: (q?: AclQuery) =>
-        request<Acl[]>('/acls' + query({principal: q?.principal, resource: q?.resource})),
-    createAcl: (body) => request('/acls', {method: 'POST', body: JSON.stringify(body)}),
-    deleteAcl: (id) => request('/acls/' + encodeURIComponent(id), {method: 'DELETE'}),
 
     getClusters: () => request('/clusters'),
     // Virtual-topic config lives on the admin server alongside RBAC and auth users.

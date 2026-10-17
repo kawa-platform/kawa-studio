@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { useApi } from '@/api/api';
 import { ApiError } from '@/api/error';
-import type { Acl, CreatePhysicalTopicRequest, CreatePhysicalTopicResult, Topic, VirtualTopicConfig, VirtualTopicPatch } from '@/api/types';
+import type { CreatePhysicalTopicRequest, CreatePhysicalTopicResult, Topic, VirtualTopicConfig, VirtualTopicPatch } from '@/api/types';
 import { keys } from '@/queries/keys';
 
 export function useTopics() {
@@ -9,14 +9,6 @@ export function useTopics() {
     return useQuery<Topic[]>({
         queryKey: keys.topics(),
         queryFn: () => api.listTopics(),
-    });
-}
-
-export function useAcls() {
-    const api = useApi();
-    return useQuery<Acl[]>({
-        queryKey: keys.acls(),
-        queryFn: () => api.listAcls(),
     });
 }
 

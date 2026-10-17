@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Topic } from '@/api/types';
-import { aclMatchesTopic, childrenOf, formatBytes, formatCount } from './topics';
+import { childrenOf, formatBytes, formatCount } from './topics';
 
 const physical = (name: string): Topic => ({
     type: 'physical', name, partitions: 3, replicationFactor: 2, messageCount: 10, sizeBytes: 2048,
@@ -25,15 +25,6 @@ describe('childrenOf', () => {
         expect(childrenOf(topics, 'orders.v1').map((topic) => topic.name)).toEqual(['orders', 'orders-eu']);
         expect(childrenOf(topics, 'payments.v2').map((topic) => topic.name)).toEqual(['payments-high-value']);
         expect(childrenOf(topics, 'missing.v1')).toEqual([]);
-    });
-});
-
-describe('aclMatchesTopic', () => {
-    it('matches exact names and wildcard prefixes only', () => {
-        expect(aclMatchesTopic('orders', 'orders')).toBe(true);
-        expect(aclMatchesTopic('orders*', 'orders-eu')).toBe(true);
-        expect(aclMatchesTopic('orders*', 'payments')).toBe(false);
-        expect(aclMatchesTopic('orders', 'orders-eu')).toBe(false);
     });
 });
 

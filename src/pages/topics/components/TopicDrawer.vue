@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { DialogClose, DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui';
-import type { Acl, Topic } from '@/api/types';
-import { aclMatchesTopic, childrenOf, formatBytes, formatCount } from '@/lib/topics';
+import type { Topic } from '@/api/types';
+import { childrenOf, formatBytes, formatCount } from '@/lib/topics';
 import FilterBadge from './FilterBadge.vue';
 import TopicTypeTag from './TopicTypeTag.vue';
 
@@ -11,7 +11,6 @@ const open = defineModel<boolean>('open', { required: true });
 const props = defineProps<{
     topic: Topic | null;
     topics: Topic[];
-    acls: Acl[];
 }>();
 
 const emit = defineEmits<{ openTopic: [Topic],  deleteTopic: [Topic]}>();
@@ -46,11 +45,6 @@ const meta = computed<{ k: string; v: string }[]>(() => {
         { k: 'On-disk size', v: isVirtual ? 'see ' + p.name : formatBytes(p.sizeBytes) },
     ];
 });
-
-const relatedAcls = computed(() =>
-    props.topic
-        ? props.acls.filter((a) => a.resourceType === 'topic' && aclMatchesTopic(a.resourceName, props.topic!.name))
-        : []);
 
 const jumpToPhysical = (): void => {
     if (target.value) emit('openTopic', target.value);
@@ -110,20 +104,6 @@ const jumpToPhysical = (): void => {
                         </table>
                     </section>
 
-                    <section>
-                        <h6>Associated ACLs</h6>
-                        <div v-for="acl in relatedAcls" :key="acl.id" class="acl">
-                            <span class="mono principal">{{ acl.principal }}</span>
-                            <span>{{ acl.operation }}</span>
-                            <span
-                                class="tag push"
-                                :class="acl.permissionType === 'deny' ? 'tag-accent-2' : 'tag-neutral'"
-                            >{{ acl.permissionType }}</span>
-                        </div>
-                        <p v-if="!relatedAcls.length" class="note">
-                            No rule references this topic. Every principal is denied by default.
-                        </p>
-                    </section>
 
                     <section v-if="topic.type === 'virtual'" class="danger-zone">
                         <button @click="emit('deleteTopic', topic)" type="button" class="btn btn-secondary btn-danger">

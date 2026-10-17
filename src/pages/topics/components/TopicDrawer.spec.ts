@@ -19,7 +19,6 @@ describe('TopicDrawer', () => {
                 open: true,
                 topic: virtualTopic,
                 topics: [virtualTopic],
-                acls: [],
             },
             attachTo: document.body,
         });
@@ -42,7 +41,6 @@ describe('TopicDrawer', () => {
                 open: true,
                 topic: physicalTopic,
                 topics: [physicalTopic],
-                acls: [],
             },
             attachTo: document.body,
         });

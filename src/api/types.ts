@@ -67,18 +67,6 @@ export interface ClientConfigPatch {
     groups?: string[];
 }
 
-export interface Acl {
-    id: string;
-    principal: string;
-    resourceType: ResourceType;
-    resourceName: string;
-    operation: string;
-    permissionType: PermissionType;
-    host: string;
-}
-
-export type CreateAclRequest = Omit<Acl, 'id'>;
-
 export interface SchemaField {
     name: string;
     type: FieldType;
