@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { ApiError } from '@/api/error';
-import { authorizeUrl, createPkce, fetchLoginChallenge, randomToken, requestCodeTokens, requestRefreshedTokens } from '@/api/oauth';
+import {
+    authorizeUrl, createPkce, fetchLoginChallenge, fetchLoginRequired, randomToken, requestCodeTokens, requestRefreshedTokens,
+} from '@/api/oauth';
 import type { TokenResponse } from '@/api/types';
 
 /// The admin session when the gateway runs with `admin.auth.type: oauth`. Without a session the
@@ -36,6 +38,8 @@ export const useAuthStore = defineStore('auth', () => {
     /// shell watches it and routes to the login page.
     const loginRequests = ref(0);
     let refreshing: Promise<boolean> | null = null;
+    /// Whether the gateway requires a login; asked once, it does not change while the page is open.
+    let loginRequired: Promise<boolean> | null = null;
 
     watch(session, writeSession, { deep: true });
 
@@ -104,6 +108,16 @@ export const useAuthStore = defineStore('auth', () => {
         return session.value !== null && session.value.accessExpiresAt - now < REFRESH_MARGIN_MS;
     }
 
+    /// Whether a protected page must wait for a login: there is no session that can be used (none
+    /// stored, or one whose refresh failed) and the gateway requires one. Decided before the page
+    /// renders, so a signed-out admin goes straight to the login instead of seeing requests fail.
+    async function needsLogin(): Promise<boolean> {
+        if (expiresSoon() && await refresh()) return false;
+        if (session.value) return false;
+        loginRequired ??= fetchLoginRequired();
+        return loginRequired;
+    }
+
     function logout(): void {
         session.value = null;
     }
@@ -116,7 +130,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     return {
         isAuthenticated, accessToken, username, loginRequests,
-        beginLogin, renewLogin, completeLogin, pendingReturnTo, refresh, expiresSoon, logout, requireLogin,
+        beginLogin, renewLogin, completeLogin, pendingReturnTo, refresh, expiresSoon, needsLogin, logout, requireLogin,
     };
 });
 

@@ -1,4 +1,4 @@
-import { createPinia } from 'pinia';
+import { createPinia, setActivePinia } from 'pinia';
 import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
@@ -13,8 +13,15 @@ vi.mock('@/pages/modules/queries', async () => {
     return { useDisabledModules: () => computed(() => new Set(mocks.disabled)) };
 });
 
+// An open gateway: the router's login guard lets every page through.
+vi.mock('@/api/oauth', async (original) => ({
+    ...await original<typeof import('@/api/oauth')>(),
+    fetchLoginRequired: async () => false,
+}));
+
 describe('AppSidebar', () => {
     beforeEach(() => {
+        setActivePinia(createPinia());
         mocks.disabled = [];
         vi.stubGlobal('localStorage', {
             getItem: () => null,

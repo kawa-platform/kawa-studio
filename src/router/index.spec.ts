@@ -1,7 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
 import { router } from './index';
 
+// An open gateway: the login guard lets every page through.
+vi.mock('@/api/oauth', async (original) => ({
+    ...await original<typeof import('@/api/oauth')>(),
+    fetchLoginRequired: async () => false,
+}));
+
 describe('router', () => {
+    beforeEach(() => {
+        setActivePinia(createPinia());
+    });
+
     it('resolves a role name to the read-only role detail page', () => {
         const route = router.resolve('/rbac/roles/reader');
 

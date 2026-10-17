@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
     requestCodeTokens: vi.fn(),
     requestRefreshedTokens: vi.fn(),
     fetchLoginChallenge: vi.fn(),
+    fetchLoginRequired: vi.fn(),
     assign: vi.fn(),
 }));
 
@@ -14,6 +15,7 @@ vi.mock('@/api/oauth', () => ({
     requestCodeTokens: mocks.requestCodeTokens,
     requestRefreshedTokens: mocks.requestRefreshedTokens,
     fetchLoginChallenge: mocks.fetchLoginChallenge,
+    fetchLoginRequired: mocks.fetchLoginRequired,
     createPkce: async () => ({ verifier: 'the-verifier', challenge: 'the-challenge' }),
     randomToken: () => 'the-state',
     authorizeUrl: (challenge: string, state: string) => `http://kawa/oauth/authorize?code_challenge=${challenge}&state=${state}`,
@@ -53,6 +55,7 @@ describe('auth store', () => {
         mocks.requestRefreshedTokens.mockReset();
         mocks.assign.mockReset();
         mocks.fetchLoginChallenge.mockReset().mockResolvedValue('fresh-challenge');
+        mocks.fetchLoginRequired.mockReset().mockResolvedValue(true);
     });
 
     afterEach(() => {
@@ -184,6 +187,61 @@ describe('auth store', () => {
         // then
         expect(auth.expiresSoon()).toBe(false);
         expect(auth.expiresSoon(Date.now() + 890_000)).toBe(true);
+    });
+
+    it('needs no login with a valid session, without asking the gateway', async () => {
+        // given
+        await signIn();
+
+        // when
+        const needed = await useAuthStore().needsLogin();
+
+        // then
+        expect(needed, 'A valid session was sent to the login').toBe(false);
+        expect(mocks.fetchLoginRequired).not.toHaveBeenCalled();
+    });
+
+    it('needs a login without a session when the gateway requires one', async () => {
+        // when
+        const needed = await useAuthStore().needsLogin();
+
+        // then
+        expect(needed, 'A signed-out admin was let into a gateway that requires a login').toBe(true);
+    });
+
+    it('needs no login on an open gateway', async () => {
+        // given
+        mocks.fetchLoginRequired.mockResolvedValue(false);
+
+        // when
+        const needed = await useAuthStore().needsLogin();
+
+        // then
+        expect(needed, 'An open gateway asked for a login').toBe(false);
+    });
+
+    it('needs a login when an expiring session cannot be refreshed', async () => {
+        // given
+        await signIn('alice', 10);
+        mocks.requestRefreshedTokens.mockRejectedValue(new Error('invalid_grant'));
+
+        // when
+        const needed = await useAuthStore().needsLogin();
+
+        // then
+        expect(needed, 'A session that could not be refreshed was let in').toBe(true);
+    });
+
+    it('asks the gateway whether it requires a login only once', async () => {
+        // given
+        const auth = useAuthStore();
+
+        // when
+        await Promise.all([auth.needsLogin(), auth.needsLogin()]);
+        await auth.needsLogin();
+
+        // then
+        expect(mocks.fetchLoginRequired).toHaveBeenCalledTimes(1);
     });
 
     it('logs out and forgets the persisted session', async () => {

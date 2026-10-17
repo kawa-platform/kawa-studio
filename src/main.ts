@@ -1,5 +1,6 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
+import { isNavigationFailure, NavigationFailureType } from 'vue-router';
 import { VueQueryPlugin, type VueQueryPluginOptions } from '@tanstack/vue-query';
 import App from './App.vue';
 import { router } from './router';
@@ -24,9 +25,16 @@ const queryOptions: VueQueryPluginOptions = {
     },
 };
 
-createApp(App)
+const app = createApp(App)
     .use(createPinia())
     .use(router)
     .use(VueQueryPlugin, queryOptions)
-    .provide(apiKey, fetchApi)
-    .mount('#app');
+    .provide(apiKey, fetchApi);
+
+/// Mount once the first route has resolved. Before that the route carries no `meta`, so the shell
+/// would render on the login and callback pages, its API calls would 401, and the login would restart.
+/// When the router guard cancels the first navigation to start a login, the app is not mounted at all:
+/// the browser is already on its way to the login page.
+router.isReady().then(() => app.mount('#app'), (error: unknown) => {
+    if (!isNavigationFailure(error, NavigationFailureType.aborted)) console.error(error);
+});
