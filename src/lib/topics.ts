@@ -3,11 +3,6 @@ import type { Topic } from '@/api/types';
 export const childrenOf = (topics: Topic[], physicalName: string): Topic[] =>
     topics.filter((t) => t.type === 'virtual' && t.physicalTopic === physicalName);
 
-/// ACLs that govern a topic, wildcard suffixes included.
-export const aclMatchesTopic = (resourceName: string, topicName: string): boolean =>
-    resourceName === topicName
-    || (resourceName.endsWith('*') && topicName.startsWith(resourceName.slice(0, -1)));
-
 export const isInternalTopic = (t: Topic) => t.name.startsWith("__")
 
 const UNITS = ['B', 'kB', 'MB', 'GB', 'TB', 'PB'];

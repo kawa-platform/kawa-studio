@@ -1,6 +1,6 @@
 import { inject, type InjectionKey } from 'vue';
 import type {
-    Acl, AdminUserView, AuthClientView, Client, CreateAclRequest, CreateClientRequest,
+    AdminUserView, AuthClientView, Client, CreateClientRequest,
     CreateAdminUserRequest, CreatePhysicalTopicRequest, CreatePhysicalTopicResult,
     GovernanceDryRunRequest, GovernanceDryRunView,
     GovernanceExemptionView, GovernanceRuleView, GovernanceVariableView, GovernanceView,
@@ -8,11 +8,6 @@ import type {
     SchemaDetail, SchemaListing, Topic, TopicType, ClientConfigPatch, Clusters, UpdateAdminUserRequest,
     VirtualTopicConfig, VirtualTopicPatch, ModuleView, UpdateModuleRequest,
 } from './types';
-
-export interface AclQuery {
-    principal?: string;
-    resource?: string;
-}
 
 /// The whole backend surface the UI depends on. One implementation (fetchApi.ts), a fetch
 /// client proxied to the gateway.
@@ -40,9 +35,6 @@ export interface KawaApi {
     deleteRbacGroup(name: string): Promise<void>;
     listAuthClients(): Promise<AuthClientView[]>;
 
-    listAcls(query?: AclQuery): Promise<Acl[]>;
-    createAcl(request: CreateAclRequest): Promise<Acl>;
-    deleteAcl(id: string): Promise<void>;
 
     getClusters(): Promise<Clusters>;
     upsertVirtualTopic(name: string, request: VirtualTopicConfig): Promise<VirtualTopicConfig>;

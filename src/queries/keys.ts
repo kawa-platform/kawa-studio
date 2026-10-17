@@ -4,7 +4,6 @@ export const keys = {
     topic: (name: string, type: string) => ['topics', name, type] as const,
     clusters: () => ['clusters'] as const,
     clients: () => ['clients'] as const,
-    acls: (principal?: string, resource?: string) => ['acls', principal ?? '', resource ?? ''] as const,
     schemas: (topic: string) => ['schemas', topic] as const,
     rbacRoles: () => ['rbac', 'roles'] as const,
     rbacGroups: () => ['rbac', 'groups'] as const,
