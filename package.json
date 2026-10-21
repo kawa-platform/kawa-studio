@@ -21,7 +21,7 @@
     "@kawa/design": "github:kawa-platform/kawa-design#v1.0.0",
     "@lezer/highlight": "^1.2.5",
     "@marcbachmann/cel-js": "^8.0.0",
-    "@tanstack/vue-query": "^5.90.2",
+    "@tanstack/vue-query": "^5.104.4",
     "@tanstack/vue-table": "^8.21.3",
     "pinia": "^3.0.3",
     "reka-ui": "^2.11.0",
