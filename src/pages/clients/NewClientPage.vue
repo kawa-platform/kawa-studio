@@ -6,6 +6,7 @@ import {validateCreateUser} from './lib/clients';
 import {useCreateClient} from "@/pages/clients/queries";
 import {useRbacGroups} from '@/pages/rbac/queries';
 import SuggestionInput from '@/pages/rbac/components/SuggestionInput.vue';
+import {groupChoices} from './lib/clients';
 
 const router = useRouter();
 
@@ -20,7 +21,8 @@ const serverError = ref<string | null>(null);
 const pending = ref(false);
 const createClient = useCreateClient();
 const groups = useRbacGroups();
-const groupSuggestions = computed(() => (groups.data.value ?? []).map((group) => group.name));
+/// Managed groups are left out: joining one changes its membership, which only its owner may do.
+const groupSuggestions = computed(() => groupChoices(groups.data.value ?? []).suggestions);
 
 const submit = async (): Promise<void> => {
   serverError.value = null;

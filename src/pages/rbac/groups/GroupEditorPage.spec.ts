@@ -134,4 +134,15 @@ describe('GroupEditorPage', () => {
             body: { clients: [], roles: [] },
         });
     });
+
+    it('warns and blocks saving a group managed by the operator', () => {
+        routeParams.value = { name: 'orders' };
+        groupsMock.mockReturnValue(queryLike([{ name: 'orders', clients: [], roles: [], managedBy: { principal: 'kawa-operator' } }]));
+
+        const wrapper = mountPage();
+
+        const banner = wrapper.findAllComponents({ name: 'RbacBanner' }).find((b) => b.props('tone') === 'warn');
+        expect(banner?.exists()).toBe(true);
+        expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeDefined();
+    });
 });

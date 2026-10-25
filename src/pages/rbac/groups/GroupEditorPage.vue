@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import type { GroupView } from '@/api/types';
 import AppToast from '@/components/AppToast.vue';
+import { managedTitle } from '@/lib/managed';
 import RbacBanner from '../components/RbacBanner.vue';
 import SuggestionInput from '../components/SuggestionInput.vue';
 import { useRbacAuthClients, useRbacGroups, useRbacRoles, useRenameRbacGroup, useUpsertRbacGroup } from '../queries';
@@ -19,7 +20,8 @@ const authClients = useRbacAuthClients();
 const upsert = useUpsertRbacGroup();
 const rename = useRenameRbacGroup();
 
-const draft = ref<GroupView>({name: '', clients: [], roles: []});
+type GroupDraft = Pick<GroupView, 'name' | 'clients' | 'roles'>;
+const draft = ref<GroupDraft>({name: '', clients: [], roles: []});
 const errors = ref<Record<string, string>>({});
 const toast = ref<{ok: boolean; text: string} | null>(null);
 const toastOpen = computed({
@@ -33,6 +35,8 @@ const existing = computed(() =>
 const notFound = computed(() =>
     Boolean(nameParam.value) && !groups.isPending.value && groups.data.value && !existing.value,
 );
+
+const managedBy = computed(() => existing.value?.managedBy ?? null);
 
 const userSuggestions = computed(() => (authClients.data.value ?? []).map((user) => user.username));
 const roleSuggestions = computed(() => (roles.data.value ?? []).map((role) => role.name));
@@ -94,6 +98,10 @@ const save = async (): Promise<void> => {
             group keeps hitting the <strong>default-deny</strong> wall.
         </RbacBanner>
 
+        <RbacBanner v-if="managedBy" tone="warn">
+            {{ managedTitle(managedBy) }}. Saving here is refused by the gateway.
+        </RbacBanner>
+
         <p v-if="notFound" class="error">
             Group “{{ nameParam }}” does not exist. <RouterLink to="/rbac/groups/new">Create a new group</RouterLink> instead.
         </p>
@@ -144,7 +152,12 @@ const save = async (): Promise<void> => {
             </section>
 
             <div class="actions">
-                <button type="submit" class="btn btn-primary" :disabled="upsert.isPending.value || rename.isPending.value">
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                    :disabled="!!managedBy || upsert.isPending.value || rename.isPending.value"
+                    :title="managedTitle(managedBy)"
+                >
                     <i class="ph-duotone ph-check" />{{ isNew ? 'Create group' : 'Save changes' }}
                 </button>
                 <RouterLink class="btn btn-secondary" to="/rbac/groups">Cancel</RouterLink>

@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue';
 import AppToast from '@/components/AppToast.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import ManagedBadge from '@/components/ManagedBadge.vue';
+import { managedTitle } from '@/lib/managed';
 import type { GroupView } from '@/api/types';
 import RbacBanner from '../components/RbacBanner.vue';
 import { useDeleteRbacGroup, useRbacGroups } from '../queries';
@@ -80,6 +82,7 @@ const confirmDelete = async (): Promise<void> => {
                         <tr class="group-row">
                             <td class="mono cell strong">
                                 <RouterLink class="group-link" :to="`/rbac/groups/${encodeURIComponent(group.name)}/`">{{ group.name }}</RouterLink>
+                                <ManagedBadge v-if="group.managedBy" class="badge" :managed-by="group.managedBy" />
                             </td>
                             <td>
                                 <span class="tag tag-neutral count">{{ group.clients.length }} client{{ group.clients.length === 1 ? '' : 's' }}</span>
@@ -88,11 +91,12 @@ const confirmDelete = async (): Promise<void> => {
                                 <span class="tag tag-neutral count">{{ group.roles.length }} role{{ group.roles.length === 1 ? '' : 's' }}</span>
                             </td>
                             <td class="actions">
-                                <RouterLink class="btn btn-ghost" :to="`/rbac/groups/${encodeURIComponent(group.name)}/edit`">Edit</RouterLink>
+                                <button v-if="group.managedBy" class="btn btn-ghost" disabled :title="managedTitle(group.managedBy)">Edit</button>
+                                <RouterLink v-else class="btn btn-ghost" :to="`/rbac/groups/${encodeURIComponent(group.name)}/edit`">Edit</RouterLink>
                                 <button
                                     class="btn btn-ghost btn-danger"
-                                    :disabled="group.clients.length > 0"
-                                    :title="group.clients.length > 0 ? 'Remove its clients first' : undefined"
+                                    :disabled="!!group.managedBy || group.clients.length > 0"
+                                    :title="managedTitle(group.managedBy) ?? (group.clients.length > 0 ? 'Remove its clients first' : undefined)"
                                     @click="openDelete(group)"
                                 >Delete</button>
                             </td>
@@ -153,6 +157,7 @@ const confirmDelete = async (): Promise<void> => {
 .group-link { color: inherit; text-decoration: none; }
 .group-link:hover { text-decoration: underline; }
 .count { margin-right: 6px; }
+.badge { margin-left: 8px; }
 .group-row td:first-child { box-shadow: inset 2px 0 0 var(--brand); }
 .group-row:hover { background: none; }
 .detail-row td { white-space: normal; padding-top: 6px; padding-bottom: 28px; font-size: 12.5px; background: color-mix(in srgb, var(--color-accent) 6%, transparent); }

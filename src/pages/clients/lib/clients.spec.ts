@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { validateCreateUser, validatePassword, validateUsername } from './clients';
+import { groupChoices, validateCreateUser, validatePassword, validateUsername } from './clients';
+
+describe('groupChoices', () => {
+    it('offers unmanaged groups and locks managed ones', () => {
+        const choices = groupChoices([
+            { name: 'producers', clients: [], roles: [], managedBy: null },
+            { name: 'orders', clients: [], roles: [], managedBy: { principal: 'kawa-operator' } },
+        ]);
+
+        expect(choices.suggestions).toEqual(['producers']);
+        expect(choices.locked).toEqual({ orders: 'Managed by kawa-operator, change it through Kubernetes' });
+    });
+});
 
 describe('validateUsername', () => {
     it('requires a value', () => {

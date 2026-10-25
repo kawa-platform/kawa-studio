@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
+import ManagedBadge from '@/components/ManagedBadge.vue';
+import { managedTitle } from '@/lib/managed';
 import { useRbacGroups } from '../rbac/queries';
 import { useClients } from './queries';
 
@@ -25,13 +27,17 @@ const notFound = computed(() =>
         <div class="head">
             <div>
                 <h1 class="mono">{{ nameParam }}</h1>
+                <ManagedBadge v-if="client?.managedBy" :managed-by="client.managedBy" />
                 <p class="lede">Authentication settings and RBAC group memberships for this client.</p>
             </div>
             <div class="head-actions">
                 <RouterLink class="btn btn-secondary" to="/clients">
                     <i class="ph-duotone ph-arrow-left" />Back
                 </RouterLink>
-                <RouterLink v-if="client" class="btn btn-primary" :to="`/clients/${encodeURIComponent(nameParam)}/edit`">
+                <button v-if="client?.managedBy" class="btn btn-primary" disabled :title="managedTitle(client.managedBy)">
+                    <i class="ph-duotone ph-pencil-simple" />Edit client
+                </button>
+                <RouterLink v-else-if="client" class="btn btn-primary" :to="`/clients/${encodeURIComponent(nameParam)}/edit`">
                     <i class="ph-duotone ph-pencil-simple" />Edit client
                 </RouterLink>
             </div>

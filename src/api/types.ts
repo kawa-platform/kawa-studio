@@ -26,6 +26,12 @@ export interface CreatePhysicalTopicResult {
     configs?: Record<string, string>;
 }
 
+/// Set by the gateway when a record is owned by another writer (the Kubernetes operator).
+/// Studio cannot change such a record; the gateway answers 409 if it tries.
+export interface ManagedByView {
+    principal: string;
+}
+
 export interface Topic {
     type: TopicType;
     name: string;
@@ -42,6 +48,8 @@ export interface Topic {
     /// Virtual topics only; absent from physical-topic summaries.
     exposePhysicalTopic?: boolean;
     config?: Record<string, string>;
+    /// Virtual topics only; null when Studio may edit the topic.
+    managedBy?: ManagedByView | null;
 }
 
 export interface Client {
@@ -49,6 +57,7 @@ export interface Client {
     mechanism: string;
     role: string | null;
     createdAt: string;
+    managedBy: ManagedByView | null;
 }
 
 /// PUT /auth/clients/{name} body — the ClientConfig shape. The username lives in the
@@ -193,6 +202,7 @@ export interface RbacAclConfig {
 export interface RoleView {
     name: string;
     acls: RbacAclConfig[];
+    managedBy: ManagedByView | null;
 }
 
 export interface RoleConfig {
@@ -203,6 +213,7 @@ export interface GroupView {
     name: string;
     clients: string[];
     roles: string[];
+    managedBy: ManagedByView | null;
 }
 
 export interface GroupConfig {

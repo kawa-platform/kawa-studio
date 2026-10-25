@@ -5,6 +5,8 @@ import { useApi } from '@/api/api';
 import { ApiError } from '@/api/error';
 import type { Client } from '@/api/types';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import ManagedBadge from '@/components/ManagedBadge.vue';
+import { managedTitle } from '@/lib/managed';
 import { keys } from '@/queries/keys';
 import { useRbacGroups } from '../rbac/queries';
 import { groupsOfUser } from '../rbac/lib/rbac';
@@ -118,6 +120,7 @@ const confirmLabel = computed(() =>
                     <tr v-for="user in users" :key="user.username">
                         <td class="mono cell">
                             <RouterLink class="client-link" :to="`/clients/${encodeURIComponent(user.username)}`">{{ user.username }}</RouterLink>
+                            <ManagedBadge v-if="user.managedBy" class="badge" :managed-by="user.managedBy" />
                         </td>
                         <td><span class="tag tag-neutral">{{ user.mechanism }}</span></td>
                         <td class="groups">
@@ -133,9 +136,16 @@ const confirmLabel = computed(() =>
                         </td>
 <!--                        <td class="muted date">{{ asDate(user.createdAt) }}</td>-->
                         <td class="actions">
-                            <RouterLink class="btn btn-ghost" :to="`/clients/${user.username}/edit`">Edit</RouterLink>
-                            <button class="btn btn-ghost" @click="openReset(user)">Reset password</button>
-                            <button class="btn btn-ghost btn-danger" @click="openDelete(user)">Delete</button>
+                            <template v-if="user.managedBy">
+                                <button class="btn btn-ghost" disabled :title="managedTitle(user.managedBy)">Edit</button>
+                                <button class="btn btn-ghost" disabled :title="managedTitle(user.managedBy)">Reset password</button>
+                                <button class="btn btn-ghost btn-danger" disabled :title="managedTitle(user.managedBy)">Delete</button>
+                            </template>
+                            <template v-else>
+                                <RouterLink class="btn btn-ghost" :to="`/clients/${encodeURIComponent(user.username)}/edit`">Edit</RouterLink>
+                                <button class="btn btn-ghost" @click="openReset(user)">Reset password</button>
+                                <button class="btn btn-ghost btn-danger" @click="openDelete(user)">Delete</button>
+                            </template>
                         </td>
                     </tr>
                 </tbody>
@@ -166,6 +176,7 @@ const confirmLabel = computed(() =>
 .head { display: flex; align-items: flex-end; gap: 24px; margin-bottom: 20px; }
 .head > div { margin-right: auto; }
 .date { font-size: 12.5px; }
+.badge { margin-left: 8px; }
 .actions { text-align: right; }
 .actions > * + * { margin-left: 6px; }
 .actions .btn { font-size: 12.5px; }

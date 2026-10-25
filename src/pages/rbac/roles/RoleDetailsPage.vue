@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
+import ManagedBadge from '@/components/ManagedBadge.vue';
+import { managedTitle } from '@/lib/managed';
 import RbacBanner from '../components/RbacBanner.vue';
 import { describeAcl } from '../lib/rbac';
 import { useRbacGroups, useRbacRoles } from '../queries';
@@ -24,13 +26,17 @@ const notFound = computed(() =>
         <div class="head">
             <div>
                 <h1 class="mono">{{ nameParam }}</h1>
+                <ManagedBadge v-if="role?.managedBy" :managed-by="role.managedBy" />
                 <p class="lede">ACLs and group bindings for this role.</p>
             </div>
             <div class="head-actions">
                 <RouterLink class="btn btn-secondary" to="/rbac/roles">
                     <i class="ph-duotone ph-arrow-left" />Back
                 </RouterLink>
-                <RouterLink v-if="role" class="btn btn-primary" :to="`/rbac/roles/${encodeURIComponent(nameParam)}/edit`">
+                <button v-if="role?.managedBy" class="btn btn-primary" disabled :title="managedTitle(role.managedBy)">
+                    <i class="ph-duotone ph-pencil-simple" />Edit role
+                </button>
+                <RouterLink v-else-if="role" class="btn btn-primary" :to="`/rbac/roles/${encodeURIComponent(nameParam)}/edit`">
                     <i class="ph-duotone ph-pencil-simple" />Edit role
                 </RouterLink>
             </div>

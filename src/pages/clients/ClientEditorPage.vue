@@ -2,6 +2,9 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AppToast from '@/components/AppToast.vue';
+import { managedTitle } from '@/lib/managed';
+import RbacBanner from '@/pages/rbac/components/RbacBanner.vue';
+import { groupChoices } from './lib/clients';
 import { usePatchClient, useClients } from './queries';
 import {useRbacGroups} from '@/pages/rbac/queries';
 import SuggestionInput from '@/pages/rbac/components/SuggestionInput.vue';
@@ -16,7 +19,7 @@ const nameParam = computed(() => String(route.params.name ?? ''));
 const clients = useClients();
 const patchClient = usePatchClient();
 const groups = useRbacGroups();
-const groupSuggestions = computed(() => (groups.data.value ?? []).map((group) => group.name));
+const choices = computed(() => groupChoices(groups.data.value ?? []));
 
 const draft = ref({ mechanism: 'PLAIN', groups: [] as string[] });
 const errors = ref<Record<string, string>>({});
@@ -29,6 +32,7 @@ const toastOpen = computed({
 const existing = computed(() =>
     nameParam.value ? clients.data.value?.find((client) => client.username === nameParam.value) : undefined,
 );
+const managedBy = computed(() => existing.value?.managedBy ?? null);
 const notFound = computed(() =>
     Boolean(nameParam.value) && !clients.isPending.value && clients.data.value && !existing.value,
 );
@@ -76,6 +80,10 @@ const save = async (): Promise<void> => {
             </p>
         </div>
 
+        <RbacBanner v-if="managedBy" tone="warn">
+            {{ managedTitle(managedBy) }}. Saving here is refused by the gateway.
+        </RbacBanner>
+
         <p v-if="notFound" class="error">
             Client “{{ nameParam }}” does not exist. <RouterLink to="/clients/new">Create a new client</RouterLink>
             instead.
@@ -115,10 +123,14 @@ const save = async (): Promise<void> => {
                     <SuggestionInput
                         v-else-if="groups.data.value?.length"
                         v-model="draft.groups"
-                        :suggestions="groupSuggestions"
+                        :suggestions="choices.suggestions"
+                        :locked="choices.locked"
                         placeholder="Add a group — e.g. producers"
                         :allow-new="false"
                     />
+                    <p v-if="Object.keys(choices.locked).length" class="hint">
+                        Groups managed by Kubernetes are locked: their membership changes only through their owner.
+                    </p>
                     <p v-else class="hint">No groups have been configured yet.</p>
                 </div>
             </section>
@@ -127,7 +139,8 @@ const save = async (): Promise<void> => {
                 <button
                     type="submit"
                     class="btn btn-primary"
-                    :disabled="patchClient.isPending.value || groups.isPending.value || !!groups.error.value"
+                    :disabled="!!managedBy || patchClient.isPending.value || groups.isPending.value || !!groups.error.value"
+                    :title="managedTitle(managedBy)"
                 >
                     <i class="ph-duotone ph-check" />Save changes
                 </button>

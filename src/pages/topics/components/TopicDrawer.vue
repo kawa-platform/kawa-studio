@@ -2,6 +2,8 @@
 import { computed } from 'vue';
 import { DialogClose, DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui';
 import type { Topic } from '@/api/types';
+import ManagedBadge from '@/components/ManagedBadge.vue';
+import { managedTitle } from '@/lib/managed';
 import { childrenOf, formatBytes, formatCount } from '@/lib/topics';
 import FilterBadge from './FilterBadge.vue';
 import TopicTypeTag from './TopicTypeTag.vue';
@@ -61,6 +63,7 @@ const jumpToPhysical = (): void => {
                         <div class="head-tags">
                             <TopicTypeTag :type="topic.type" />
                             <span class="kicker">{{ kicker }}</span>
+                            <ManagedBadge v-if="topic.managedBy" :managed-by="topic.managedBy" />
                         </div>
                         <DialogTitle class="name mono">{{ topic.name }}</DialogTitle>
                         <DialogDescription class="sr">Topic detail</DialogDescription>
@@ -106,7 +109,13 @@ const jumpToPhysical = (): void => {
 
 
                     <section v-if="topic.type === 'virtual'" class="danger-zone">
-                        <button @click="emit('deleteTopic', topic)" type="button" class="btn btn-secondary btn-danger">
+                        <button
+                            type="button"
+                            class="btn btn-secondary btn-danger"
+                            :disabled="!!topic.managedBy"
+                            :title="managedTitle(topic.managedBy)"
+                            @click="emit('deleteTopic', topic)"
+                        >
                             <i class="ph-duotone ph-trash" />
                             Delete virtual topic
                         </button>
