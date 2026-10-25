@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import type { RbacAclConfig } from '@/api/types';
 import AppToast from '@/components/AppToast.vue';
+import { managedTitle } from '@/lib/managed';
 import AclEditor from '../components/AclEditor.vue';
 import RbacBanner from '../components/RbacBanner.vue';
 import { broadAccessAcls, validateAcl } from '../lib/rbac';
@@ -33,6 +34,7 @@ const notFound = computed(() =>
     Boolean(nameParam.value) && !roles.isPending.value && roles.data.value && !existing.value,
 );
 const isNew = computed(() => !nameParam.value);
+const managedBy = computed(() => existing.value?.managedBy ?? null);
 
 const cloneAcls = (acls: RbacAclConfig[]): RbacAclConfig[] =>
     acls.map((acl) => ({...acl, resource: {...acl.resource}}));
@@ -98,6 +100,10 @@ const save = async (): Promise<void> => {
             for anything a role does not touch. A role with no ACLs grants nothing.
         </RbacBanner>
 
+        <RbacBanner v-if="managedBy" tone="warn">
+            {{ managedTitle(managedBy) }}. Saving here is refused by the gateway.
+        </RbacBanner>
+
         <p v-if="notFound" class="error">
             Role “{{ nameParam }}” does not exist. <RouterLink to="/rbac/roles/new">Create a new role</RouterLink> instead.
         </p>
@@ -132,7 +138,12 @@ const save = async (): Promise<void> => {
             </section>
 
             <div class="actions">
-                <button type="submit" class="btn btn-primary" :disabled="upsert.isPending.value">
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                    :disabled="!!managedBy || upsert.isPending.value"
+                    :title="managedTitle(managedBy)"
+                >
                     <i class="ph-duotone ph-check" />{{ isNew ? 'Create role' : 'Save changes' }}
                 </button>
                 <RouterLink class="btn btn-secondary" to="/rbac/roles">Cancel</RouterLink>

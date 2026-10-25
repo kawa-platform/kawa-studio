@@ -21,9 +21,9 @@ const topic = (pattern: string, patternType: 'LITERAL' | 'PREFIXED' = 'LITERAL')
     ({type: 'TOPIC', pattern, patternType});
 const cluster = (): RbacResourceConfig => ({type: 'CLUSTER'});
 
-const role = (name: string, ...acls: RbacAclConfig[]): RoleView => ({name, acls});
+const role = (name: string, ...acls: RbacAclConfig[]): RoleView => ({name, acls, managedBy: null});
 
-const group = (name: string, clients: string[], roles: string[]): GroupView => ({name, clients, roles});
+const group = (name: string, clients: string[], roles: string[]): GroupView => ({name, clients, roles, managedBy: null});
 
 describe('validateAcl', () => {
     it('accepts a complete literal topic acl', () => {

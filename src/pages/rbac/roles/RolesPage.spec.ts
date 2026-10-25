@@ -49,4 +49,20 @@ describe('RolesPage', () => {
         expect(wrapper.get('a[href="/rbac/roles/reader"]').text()).toBe('reader');
         expect(wrapper.get('a[href="/rbac/roles/reader/edit"]').text()).toContain('Edit');
     });
+
+    it('locks edit and delete of a role managed by the operator', () => {
+        rolesMock.mockReturnValue({
+            data: { value: [{ name: 'reader', acls: [], managedBy: { principal: 'kawa-operator' } }] },
+            error: { value: null },
+        });
+
+        const wrapper = mountPage();
+
+        expect(wrapper.find('a[href="/rbac/roles/reader/edit"]').exists()).toBe(false);
+        for (const button of wrapper.findAll('tbody tr button')) {
+            expect(button.attributes('disabled')).toBeDefined();
+            expect(button.attributes('title')).toBe('Managed by kawa-operator, change it through Kubernetes');
+        }
+        expect(wrapper.text()).toContain('Managed by kawa-operator');
+    });
 });

@@ -35,4 +35,26 @@ describe('TopicTree', () => {
         await wrapper.find('button[title="Delete orders-eu"]').trigger('click');
         expect(wrapper.emitted('delete')?.[0]).toEqual([virtualTopic]);
     });
+
+    it('locks edit and delete of a topic managed by the operator', async () => {
+        const managed: Topic = { ...virtualTopic, managedBy: { principal: 'kawa-operator' } };
+        const wrapper = mount(TopicTree, {
+            props: {
+                rows: [{ topic: managed, depth: 0, childCount: 0, last: true }],
+                collapsed: new Set<string>(),
+                view: 'virtual',
+            },
+        });
+
+        const buttons = wrapper.findAll('.actions button');
+        expect(buttons).toHaveLength(2);
+        for (const button of buttons) {
+            expect(button.attributes('disabled')).toBeDefined();
+            expect(button.attributes('title')).toBe('Managed by kawa-operator, change it through Kubernetes');
+            await button.trigger('click');
+        }
+        expect(wrapper.emitted('edit')).toBeUndefined();
+        expect(wrapper.emitted('delete')).toBeUndefined();
+        expect(wrapper.text()).toContain('Managed by kawa-operator');
+    });
 });

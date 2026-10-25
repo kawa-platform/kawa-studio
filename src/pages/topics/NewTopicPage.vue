@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
 import { type ValueFormat } from '@/api/types';
 import { isInternalTopic } from '@/lib/topics';
+import { managedTitle } from '@/lib/managed';
+import RbacBanner from '../rbac/components/RbacBanner.vue';
 import { usePatchVirtualTopic, usePhysicalTopics, useTopics, useUpsertVirtualTopic, useCreatePhysicalTopic } from './queries';
 import { useClusters } from '../clusters/queries';
 import ConfigEditor from './components/ConfigEditor.vue';
@@ -34,6 +36,8 @@ const originalName = computed(() => String(route.params.name ?? ''));
 const isEdit = computed(() => !!originalName.value);
 const existing = computed(() => topics.value?.find((topic) =>
     topic.type === 'virtual' && topic.name === originalName.value));
+
+const managedBy = computed(() => existing.value?.managedBy ?? null);
 
 const name = ref('');
 const target = ref('');
@@ -76,6 +80,7 @@ const canSubmit = computed(() =>
     !!name.value.trim()
     && !!target.value
     && (!isEdit.value || !!existing.value)
+    && !managedBy.value
     && !nameError.value
     && filterComplete.value
     && !upsert.isPending.value
@@ -186,6 +191,10 @@ const submitPhysical = async (): Promise<void> => {
             </p>
 
             <template v-else>
+            <RbacBanner v-if="managedBy" tone="warn">
+                {{ managedTitle(managedBy) }}. Saving here is refused by the gateway.
+            </RbacBanner>
+
             <section>
                 <h2>1 · Identity</h2>
                 <div class="field">
@@ -230,7 +239,7 @@ const submitPhysical = async (): Promise<void> => {
             </section>
 
             <div class="actions">
-                <button class="btn btn-primary" :disabled="!canSubmit" @click="submit">
+                <button class="btn btn-primary" :disabled="!canSubmit" :title="managedTitle(managedBy)" @click="submit">
                     <i class="ph-duotone ph-check" />
                     {{ upsert.isPending.value || patch.isPending.value ? 'Saving…' : isEdit ? 'Save changes' : 'Create topic' }}
                 </button>

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { Topic } from '@/api/types';
+import ManagedBadge from '@/components/ManagedBadge.vue';
+import { managedTitle } from '@/lib/managed';
 import type { TopicView, TreeRow } from '../lib/rows';
 import FilterBadge from './FilterBadge.vue';
 import TopicTypeTag from './TopicTypeTag.vue';
@@ -50,6 +52,7 @@ const onToggle = (event: MouseEvent, name: string): void => {
                             <span v-else-if="row.depth === 0" class="caret-spacer" />
                             <span v-if="row.depth > 0" class="connector mono">{{ row.last ? '└' : '├' }}</span>
                             <span class="mono topic-name">{{ row.topic.name }}</span>
+                            <ManagedBadge v-if="row.topic.managedBy" :managed-by="row.topic.managedBy" />
                         </div>
                     </td>
                     <td><TopicTypeTag :type="row.topic.type" /></td>
@@ -68,14 +71,16 @@ const onToggle = (event: MouseEvent, name: string): void => {
                         <template v-if="row.topic.type === 'virtual'">
                             <button
                                 class="btn btn-ghost"
-                                :title="'Edit ' + row.topic.name"
+                                :disabled="!!row.topic.managedBy"
+                                :title="managedTitle(row.topic.managedBy) ?? 'Edit ' + row.topic.name"
                                 @keydown.enter.stop
                                 @keydown.space.stop
                                 @click="emit('edit', row.topic)"
                             >Edit</button>
                             <button
                                 class="btn btn-ghost btn-danger"
-                                :title="'Delete ' + row.topic.name"
+                                :disabled="!!row.topic.managedBy"
+                                :title="managedTitle(row.topic.managedBy) ?? 'Delete ' + row.topic.name"
                                 @keydown.enter.stop
                                 @keydown.space.stop
                                 @click="emit('delete', row.topic)"

@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue';
 import AppToast from '@/components/AppToast.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import ManagedBadge from '@/components/ManagedBadge.vue';
+import { managedTitle } from '@/lib/managed';
 import type { RoleView } from '@/api/types';
 import RbacBanner from '../components/RbacBanner.vue';
 import { describeAcl, groupsReferencingRole } from '../lib/rbac';
@@ -90,6 +92,7 @@ const dialogBody = computed(() =>
                     <tr v-for="role in roles.data.value" :key="role.name">
                         <td class="mono cell strong">
                             <RouterLink class="role-link" :to="`/rbac/roles/${encodeURIComponent(role.name)}`">{{ role.name }}</RouterLink>
+                            <ManagedBadge v-if="role.managedBy" class="badge" :managed-by="role.managedBy" />
                         </td>
                         <td>
                             <template v-if="role.acls.length">
@@ -108,8 +111,14 @@ const dialogBody = computed(() =>
                             <span v-else class="faint">unbound</span>
                         </td>
                         <td class="actions">
-                            <RouterLink class="btn btn-ghost" :to="`/rbac/roles/${encodeURIComponent(role.name)}/edit`">Edit</RouterLink>
-                            <button class="btn btn-ghost btn-danger" @click="openDelete(role)">Delete</button>
+                            <button v-if="role.managedBy" class="btn btn-ghost" disabled :title="managedTitle(role.managedBy)">Edit</button>
+                            <RouterLink v-else class="btn btn-ghost" :to="`/rbac/roles/${encodeURIComponent(role.name)}/edit`">Edit</RouterLink>
+                            <button
+                                class="btn btn-ghost btn-danger"
+                                :disabled="!!role.managedBy"
+                                :title="managedTitle(role.managedBy)"
+                                @click="openDelete(role)"
+                            >Delete</button>
                         </td>
                     </tr>
                 </tbody>
@@ -137,6 +146,7 @@ const dialogBody = computed(() =>
 .role-link { color: inherit; text-decoration: none; }
 .role-link:hover { text-decoration: underline; }
 .count { margin-right: 6px; }
+.badge { margin-left: 8px; }
 .list-meta { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320px; display: inline-block; vertical-align: bottom; }
 .bound { font-size: 10.5px; }
 .actions { text-align: right; }

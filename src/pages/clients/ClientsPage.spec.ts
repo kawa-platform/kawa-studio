@@ -35,6 +35,7 @@ const user = (username: string): Client => ({
     mechanism: 'PLAIN',
     role: null,
     createdAt: '2026-01-01T00:00:00.000Z',
+    managedBy: null,
 });
 
 const groupQueryLike = (data: unknown[] | null) => ({
@@ -141,5 +142,20 @@ describe('ClientsPage', () => {
         const wrapper = mountPage();
 
         expect(wrapper.find('a[href="/clients/alice"]').text()).toBe('alice');
+    });
+
+    it('locks every action on a client managed by the operator', () => {
+        mocks.usersData.value = [{ ...user('alice'), managedBy: { principal: 'kawa-operator' } }];
+        mocks.groupsMock.mockReturnValue(groupQueryLike([]));
+
+        const wrapper = mountPage();
+
+        expect(wrapper.find('a[href="/clients/alice/edit"]').exists()).toBe(false);
+        const buttons = wrapper.findAll('tbody tr button');
+        expect(buttons.map((button) => button.text())).toEqual(['Edit', 'Reset password', 'Delete']);
+        for (const button of buttons) {
+            expect(button.attributes('disabled')).toBeDefined();
+            expect(button.attributes('title')).toBe('Managed by kawa-operator, change it through Kubernetes');
+        }
     });
 });

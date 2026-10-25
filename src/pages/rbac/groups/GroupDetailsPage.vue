@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
+import ManagedBadge from '@/components/ManagedBadge.vue';
+import { managedTitle } from '@/lib/managed';
 import RbacBanner from '../components/RbacBanner.vue';
 import { useRbacGroups } from '../queries';
 
@@ -19,13 +21,17 @@ const notFound = computed(() =>
         <div class="head">
             <div>
                 <h1 class="mono">{{ nameParam }}</h1>
+                <ManagedBadge v-if="group?.managedBy" :managed-by="group.managedBy" />
                 <p class="lede">Clients in this group inherit the access granted by every assigned role.</p>
             </div>
             <div class="head-actions">
                 <RouterLink class="btn btn-secondary" to="/rbac/groups">
                     <i class="ph-duotone ph-arrow-left" />Back
                 </RouterLink>
-                <RouterLink v-if="group" class="btn btn-primary" :to="`/rbac/groups/${encodeURIComponent(nameParam)}/edit`">
+                <button v-if="group?.managedBy" class="btn btn-primary" disabled :title="managedTitle(group.managedBy)">
+                    <i class="ph-duotone ph-pencil-simple" />Edit group
+                </button>
+                <RouterLink v-else-if="group" class="btn btn-primary" :to="`/rbac/groups/${encodeURIComponent(nameParam)}/edit`">
                     <i class="ph-duotone ph-pencil-simple" />Edit group
                 </RouterLink>
             </div>

@@ -11,8 +11,11 @@ const props = withDefaults(defineProps<{
     placeholder?: string;
     allowNew?: boolean;
     disabled?: boolean;
+    /// Values that may not be removed, each with the reason shown on its chip.
+    locked?: Record<string, string>;
 }>(), {
     suggestions: () => [],
+    locked: () => ({}),
     placeholder: 'Type a value and press Enter…',
     allowNew: true,
     disabled: false,
@@ -49,6 +52,7 @@ function select(value: string): void {
 }
 
 const remove = (value: string): void => {
+    if (value in props.locked) return;
     model.value = model.value.filter((v) => v !== value);
 };
 
@@ -86,9 +90,10 @@ function blur(): void {
 <template>
     <div class="suggestion-input" :class="{ disabled }">
         <div class="chips">
-            <span v-for="value in model" :key="value" class="tag tag-neutral chip">
+            <span v-for="value in model" :key="value" class="tag tag-neutral chip" :title="locked[value]">
                 <span class="mono chip-label">{{ value }}</span>
-                <button class="remove" type="button" aria-label="Remove {{ value }}" @click="remove(value)">
+                <i v-if="value in locked" class="ph-duotone ph-lock-simple lock" />
+                <button v-else class="remove" type="button" :aria-label="`Remove ${value}`" @click="remove(value)">
                     <i class="ph-duotone ph-x" />
                 </button>
             </span>
@@ -153,6 +158,7 @@ function blur(): void {
 }
 .remove:hover { color: var(--color-accent-2-700); }
 .remove i { font-size: 12px; }
+.lock { color: var(--faint); font-size: 12px; padding: 1px; }
 
 .chip-input {
     flex: 1;

@@ -110,4 +110,21 @@ describe('GroupsPage', () => {
         const deleteButton = wrapper.find('tbody tr button');
         expect(deleteButton.attributes('disabled')).toBeDefined();
     });
+
+    it('locks edit and delete of a group managed by the operator', () => {
+        groupsMock.mockReturnValue(queryLike([
+            { name: 'orders', clients: [], roles: [], managedBy: { principal: 'kawa-operator' } },
+        ]));
+
+        const wrapper = mountPage();
+
+        expect(wrapper.find('a[href="/rbac/groups/orders/edit"]').exists()).toBe(false);
+        const buttons = wrapper.findAll('tbody tr button');
+        expect(buttons.map((button) => button.text())).toEqual(['Edit', 'Delete']);
+        for (const button of buttons) {
+            expect(button.attributes('disabled')).toBeDefined();
+            expect(button.attributes('title')).toBe('Managed by kawa-operator, change it through Kubernetes');
+        }
+        expect(wrapper.text()).toContain('Managed by kawa-operator');
+    });
 });

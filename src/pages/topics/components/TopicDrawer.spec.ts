@@ -50,4 +50,24 @@ describe('TopicDrawer', () => {
         expect(document.body.textContent).not.toContain('Delete virtual topic');
         wrapper.unmount();
     });
+
+    it('disables deletion of a topic managed by the operator', async () => {
+        const managed: Topic = { ...virtualTopic, managedBy: { principal: 'kawa-operator' } };
+        const wrapper = mount(TopicDrawer, {
+            props: {
+                open: true,
+                topic: managed,
+                topics: [managed],
+            },
+            attachTo: document.body,
+        });
+
+        await nextTick();
+
+        const button = [...document.body.querySelectorAll('button')]
+            .find((b) => b.textContent?.includes('Delete virtual topic'));
+        expect(button?.disabled).toBe(true);
+        expect(button?.title).toBe('Managed by kawa-operator, change it through Kubernetes');
+        wrapper.unmount();
+    });
 });
