@@ -81,4 +81,20 @@ describe('AppSidebar', () => {
         expect(governance.find('.off').text()).toBe('off');
         expect(wrapper.get('a[href="/admin/topics"]').classes()).not.toContain('nav-item-off');
     });
+
+    it('nests MCP settings under Modules and marks it off with the mcp module', () => {
+        // given
+        mocks.disabled = ['mcp'];
+
+        // when
+        const wrapper = mount(AppSidebar, { global: { plugins: [createPinia(), router] } });
+
+        // then
+        const links = wrapper.findAll('a.nav-item').map((link) => link.attributes('href'));
+        expect(links.indexOf('/admin/oauth-clients')).toBe(links.indexOf('/admin/modules') + 1);
+        const settings = wrapper.get('a[href="/admin/oauth-clients"]');
+        expect(settings.text()).toContain('MCP settings');
+        expect(settings.classes()).toContain('nav-item-nested');
+        expect(settings.classes()).toContain('nav-item-off');
+    });
 });

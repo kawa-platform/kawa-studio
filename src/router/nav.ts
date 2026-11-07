@@ -32,6 +32,7 @@ export const navSections: NavSection[] = [
     {
         title: 'Gateway', note: 'Settings', items: [
             { label: 'Modules', icon: 'ph-sliders-horizontal', to: '/modules'},
+            { label: 'MCP settings', icon: 'ph-key', to: '/oauth-clients', level: 1, module: 'mcp' },
         ],
     },
     {

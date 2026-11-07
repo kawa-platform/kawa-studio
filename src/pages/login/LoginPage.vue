@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ApiError } from '@/api/error';
-import { submitLogin } from '@/api/oauth';
+import { CLIENT_ID, continueLogin, fetchLoginClient, submitLogin } from '@/api/oauth';
+import type { LoginClientView } from '@/api/types';
 import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
+import McpConsentPanel from './McpConsentPanel.vue';
 import { safeRedirect, validateLogin } from './lib/login';
 
 /// kawa studio's login page, used as the login UI of the gateway's (headless) authorization server:
@@ -29,10 +31,23 @@ const errors = ref<Record<string, string>>({});
 const serverError = ref<string | null>(null);
 const pending = ref(false);
 const challengeExpired = ref(false);
+/// For an MCP client: the credentials are filled in and the user has yet to press "Authorize". Signing in
+/// grants the access, so it waits for that explicit click rather than following the password.
+const confirming = ref(false);
 /// Replaces the challenge from the URL once it has been renewed.
 const renewedChallenge = ref<string | null>(null);
 const loginChallenge = computed(() => renewedChallenge.value
     ?? (typeof route.query.login_challenge === 'string' ? route.query.login_challenge : null));
+
+/// Who is asking, as the gateway verified it. Studio's own sign-in is not a request to consent to.
+const client = ref<LoginClientView | null>(null);
+const consent = computed(() => client.value && client.value.clientId !== CLIENT_ID ? client.value : null);
+/// An MCP client gets its own focused layout; an admin client keeps the usual page with a consent block.
+const mcp = computed(() => consent.value?.audience === 'mcp' ? consent.value : null);
+watch(loginChallenge, async (challenge) => {
+    client.value = null;
+    if (challenge) client.value = await fetchLoginClient(challenge);
+}, { immediate: true });
 
 /// Where to go once logged in.
 const returnTo = (): string => auth.pendingReturnTo() ?? safeRedirect(route.query.redirect);
@@ -42,20 +57,25 @@ const startOver = (): void => {
     void auth.beginLogin(returnTo());
 };
 
-/// Logs in for the pending authorization request. If its challenge has expired (the page was left
-/// open, or the gateway restarted), fetches a fresh one in the background and logs in with that, so
+/// Runs `attempt` for the pending authorization request. If its challenge has expired (the page was left
+/// open, or the gateway restarted), fetches a fresh one in the background and runs it again with that, so
 /// the user does not have to start over. Only when that fails too does the error reach the user.
-const login = async (user: string, secret: string): Promise<string> => {
+const withRenewedChallenge = async (attempt: (challenge: string) => Promise<string>): Promise<string> => {
     try {
-        return await submitLogin(loginChallenge.value ?? '', user, secret);
+        return await attempt(loginChallenge.value ?? '');
     } catch (cause) {
         if (!(cause instanceof ApiError && cause.code === 'invalid_challenge')) throw cause;
         const fresh = await auth.renewLogin(returnTo());
         renewedChallenge.value = fresh;
         void router.replace({ query: { ...route.query, login_challenge: fresh } });
-        return await submitLogin(fresh, user, secret);
+        return await attempt(fresh);
     }
 };
+
+/// Whether to offer "Continue as <user>": an admin signed in to studio answering a client's request, who
+/// has not asked for another account.
+const otherAccount = ref(false);
+const canContinue = computed(() => consent.value !== null && auth.isAuthenticated && !otherAccount.value);
 
 onMounted(() => {
     if (!loginChallenge.value) startOver();
@@ -68,13 +88,40 @@ const submit = async (): Promise<void> => {
     const found = validateLogin({ username: username.value, password: password.value });
     errors.value = found;
     if (Object.keys(found).length > 0 || !loginChallenge.value) return;
+    if (mcp.value && !confirming.value) {
+        confirming.value = true;
+        return;
+    }
     pending.value = true;
     try {
-        window.location.assign(await login(username.value.trim(), password.value));
+        const user = username.value.trim();
+        window.location.assign(await withRenewedChallenge((challenge) => submitLogin(challenge, user, password.value)));
     } catch (cause) {
         serverError.value = cause instanceof ApiError ? cause.message : 'Sign-in failed.';
         challengeExpired.value = cause instanceof ApiError && cause.code === 'invalid_challenge';
         password.value = '';
+        confirming.value = false;
+        pending.value = false;
+    }
+};
+
+/// Signs the already signed-in user in for the pending request, on their explicit click. Their token is
+/// refreshed first when it is about to expire; one the gateway refuses falls back to the password form.
+const continueAsSignedIn = async (): Promise<void> => {
+    serverError.value = null;
+    pending.value = true;
+    try {
+        if (auth.expiresSoon() && !(await auth.refresh())) throw new ApiError('invalid_credentials', '');
+        const token = auth.accessToken ?? '';
+        window.location.assign(await withRenewedChallenge((challenge) => continueLogin(challenge, token)));
+    } catch (cause) {
+        if (cause instanceof ApiError && cause.code === 'invalid_credentials') {
+            otherAccount.value = true;
+            serverError.value = 'Your session has expired. Sign in with your password.';
+        } else {
+            serverError.value = cause instanceof ApiError ? cause.message : 'Sign-in failed.';
+            challengeExpired.value = cause instanceof ApiError && cause.code === 'invalid_challenge';
+        }
         pending.value = false;
     }
 };
@@ -82,7 +129,8 @@ const submit = async (): Promise<void> => {
 
 <template>
     <div class="login">
-        <aside class="intro">
+        <McpConsentPanel v-if="mcp" :client="mcp" />
+        <aside v-else class="intro">
             <div class="brand-row">
                 <span class="mark" aria-hidden="true">川</span>
                 <span class="wordmark">kawa</span>
@@ -117,25 +165,60 @@ const submit = async (): Promise<void> => {
             <p v-if="!loginChallenge" class="card redirecting">Redirecting to sign in…</p>
             <form v-else class="form card" novalidate @submit.prevent="submit">
                 <div class="card-head">
-                    <h2>Sign in</h2>
-                    <p>Use your kawa account to manage topics, clients and access.</p>
+                    <template v-if="confirming">
+                        <h2>Authorize access</h2>
+                        <p>Signing in as <strong class="mono">{{ username.trim() }}</strong>. Nothing is granted until you authorize.</p>
+                    </template>
+                    <template v-else>
+                        <h2>Sign in</h2>
+                        <p>Use your kawa account to manage topics, clients and access.</p>
+                    </template>
                 </div>
 
-                <div class="field">
-                    <label for="username">Username</label>
-                    <input id="username" v-model="username" class="input mono" autocomplete="username" autofocus>
-                    <p v-if="errors.username" class="field-error">{{ errors.username }}</p>
-                </div>
-                <div class="field">
-                    <label for="password">Password</label>
-                    <input id="password" v-model="password" class="input" type="password" autocomplete="current-password">
-                    <p v-if="errors.password" class="field-error">{{ errors.password }}</p>
-                </div>
+                <section v-if="consent && !mcp" class="consent" aria-label="Access request">
+                    <p class="consent-lead">
+                        <strong class="consent-name">{{ consent.clientName }}</strong> wants to sign in.
+                    </p>
+                    <dl>
+                        <div><dt>Client ID</dt><dd class="mono">{{ consent.clientId }}</dd></div>
+                        <div><dt>Returns to</dt><dd class="mono">{{ consent.redirectHost }}</dd></div>
+                    </dl>
+                    <p class="consent-access">It will get full access to kawa's admin API.</p>
+                </section>
 
-                <button type="submit" class="btn btn-primary submit" :disabled="pending">
-                    <i class="ph-duotone ph-sign-in" />
-                    {{ pending ? 'Signing in…' : 'Sign in' }}
-                </button>
+                <div v-if="canContinue" class="continue">
+                    <button type="button" class="btn btn-primary submit" :disabled="pending" @click="continueAsSignedIn">
+                        <i class="ph-duotone ph-sign-in" />
+                        {{ pending ? 'Signing in…' : `Continue as ${auth.username}` }}
+                    </button>
+                    <button type="button" class="link" :disabled="pending" @click="otherAccount = true">
+                        Use a different account
+                    </button>
+                </div>
+                <div v-else-if="confirming" class="continue">
+                    <button type="submit" class="btn btn-primary submit" :disabled="pending" autofocus>
+                        <i class="ph-duotone ph-shield-check" />
+                        {{ pending ? 'Authorizing…' : 'Authorize' }}
+                    </button>
+                    <button type="button" class="link" :disabled="pending" @click="confirming = false">Back</button>
+                </div>
+                <template v-else>
+                    <div class="field">
+                        <label for="username">Username</label>
+                        <input id="username" v-model="username" class="input mono" autocomplete="username" autofocus>
+                        <p v-if="errors.username" class="field-error">{{ errors.username }}</p>
+                    </div>
+                    <div class="field">
+                        <label for="password">Password</label>
+                        <input id="password" v-model="password" class="input" type="password" autocomplete="current-password">
+                        <p v-if="errors.password" class="field-error">{{ errors.password }}</p>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary submit" :disabled="pending">
+                        <i class="ph-duotone ph-sign-in" />
+                        {{ pending ? 'Signing in…' : mcp ? 'Continue' : 'Sign in' }}
+                    </button>
+                </template>
 
                 <p v-if="serverError" class="error" role="alert">{{ serverError }}</p>
                 <button v-if="challengeExpired" type="button" class="btn btn-secondary submit" @click="startOver">
@@ -240,6 +323,29 @@ const submit = async (): Promise<void> => {
 
 .card-head h2 { margin: 0; font-family: var(--font-heading); font-size: 22px; font-weight: 600; }
 .card-head p { margin: 6px 0 24px; font-size: 13px; line-height: 1.5; color: var(--muted); }
+
+.consent {
+    margin: -8px 0 20px;
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+.consent p { margin: 0; }
+.consent-name { font-size: 14px; overflow-wrap: anywhere; }
+.consent dl { margin: 8px 0; display: grid; gap: 2px; }
+.consent dl div { display: grid; grid-template-columns: 84px 1fr; gap: 8px; }
+.consent dt { color: var(--muted); }
+.consent dd { margin: 0; overflow-wrap: anywhere; }
+
+.continue { display: grid; gap: 12px; justify-items: center; }
+.link {
+    padding: 0; border: 0; background: none; font: inherit; font-size: 13px;
+    color: var(--brand-text); cursor: pointer; text-decoration: underline;
+}
+.link:disabled { opacity: 0.6; cursor: default; }
 
 .submit { width: 100%; justify-content: center; margin-top: 6px; }
 .redirecting { font-size: 13px; color: var(--muted); text-align: center; }

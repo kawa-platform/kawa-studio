@@ -42,6 +42,13 @@ export const MODULE_REFS: Readonly<Record<string, ModuleRef>> = {
         kafka: 'Checks Kafka Resource create and alter requests against the rules',
         pages: [{ label: 'Governance', to: '/governance' }],
     },
+    mcp: {
+        name: 'MCP server',
+        icon: 'ph-robot',
+        description: 'Lets AI assistants such as Claude Code and Cursor inspect the gateway over the Model Context Protocol, signing in with an admin token or an OAuth client.',
+        kafka: 'None; serves MCP at POST /mcp on the admin port',
+        pages: [{ label: 'OAuth clients', to: '/oauth-clients' }],
+    },
 };
 
 /// A module card: the gateway's identifier and enabled state, described by its [ModuleRef].

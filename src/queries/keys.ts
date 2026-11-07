@@ -11,4 +11,5 @@ export const keys = {
     governance: () => ['governance'] as const,
     adminUsers: () => ['admin-users'] as const,
     modules: () => ['modules'] as const,
+    oauthClients: () => ['oauth-clients'] as const,
 };

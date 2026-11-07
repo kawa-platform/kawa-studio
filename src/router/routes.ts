@@ -34,5 +34,8 @@ export const routes: RouteRecordRaw[] = [
     { path: '/governance/variables/:id/edit', name: 'governance-variable-edit', component: () => import('../pages/governance/VariableEditorPage.vue'), meta: { crumb: 'Edit variable', module: 'governance' } },
     { path: '/governance/exemptions/new', name: 'governance-exemption-new', component: () => import('../pages/governance/ExemptionEditorPage.vue'), meta: { crumb: 'New global exemption', module: 'governance' } },
     { path: '/governance/exemptions/:id/edit', name: 'governance-exemption-edit', component: () => import('../pages/governance/ExemptionEditorPage.vue'), meta: { crumb: 'Edit global exemption', module: 'governance' } },
+    { path: '/oauth-clients', name: 'oauth-clients', component: () => import('../pages/oauth-clients/OAuthClientsPage.vue'), meta: { crumb: 'MCP settings', module: 'mcp' } },
+    { path: '/oauth-clients/new', name: 'oauth-client-new', component: () => import('../pages/oauth-clients/OAuthClientEditorPage.vue'), meta: { crumb: 'New OAuth client', module: 'mcp' } },
+    { path: '/oauth-clients/:id/edit', name: 'oauth-client-edit', component: () => import('../pages/oauth-clients/OAuthClientEditorPage.vue'), meta: { crumb: 'Edit OAuth client', module: 'mcp' } },
     { path: '/modules', name: 'modules', component: () => import('../pages/modules/ModulesPage.vue'), meta: { crumb: 'Modules' } },
 ];

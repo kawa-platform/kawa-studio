@@ -7,6 +7,7 @@ import type {
     GroupConfig, GroupConfigPatch, GroupView, PublishRequest, PublishResult, RoleConfig, RoleView,
     SchemaDetail, SchemaListing, Topic, TopicType, ClientConfigPatch, Clusters, UpdateAdminUserRequest,
     VirtualTopicConfig, VirtualTopicPatch, ModuleView, UpdateModuleRequest,
+    OAuthClientConfigView, OAuthClientRequest,
 } from './types';
 
 /// The whole backend surface the UI depends on. One implementation (fetchApi.ts), a fetch
@@ -59,6 +60,11 @@ export interface KawaApi {
 
     listModules(): Promise<ModuleView[]>;
     updateModule(id: string, request: UpdateModuleRequest): Promise<ModuleView>;
+
+    /** OAuth clients of the built-in authorization server; PUT is a full replace. */
+    listOAuthClients(): Promise<OAuthClientConfigView[]>;
+    upsertOAuthClient(id: string, request: OAuthClientRequest): Promise<OAuthClientConfigView>;
+    deleteOAuthClient(id: string): Promise<void>;
 }
 
 export const apiKey: InjectionKey<KawaApi> = Symbol('kawa-api');

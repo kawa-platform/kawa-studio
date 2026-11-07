@@ -38,7 +38,9 @@ describe('app bootstrap', () => {
         await vi.waitFor(() => expect(document.querySelector('form')).not.toBeNull());
 
         // then
-        expect(requests(), 'The login page called the API (the app shell rendered before the route resolved)').toEqual([]);
+        // The only call is the login page asking who is behind the challenge; the app shell would add /modules and more.
+        expect(requests(), 'The login page called more than the login challenge (the app shell rendered before the route resolved)')
+            .toEqual(['http://localhost:8080/oauth/login-challenge?login_challenge=the-challenge']);
         // beginLogin records the login it starts before leaving the page.
         expect(pending.get('kawa.auth.pending'), 'The login page restarted the login').toBeUndefined();
     });

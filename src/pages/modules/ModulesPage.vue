@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { SwitchRoot, SwitchThumb } from 'reka-ui';
+import AppSwitch from '@/components/AppSwitch.vue';
 import { ApiError } from '@/api/error';
 import AppToast from '@/components/AppToast.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
@@ -114,14 +114,11 @@ const confirmToggle = async (): Promise<void> => {
                         <h2>{{ module.name }}</h2>
                         <span class="module-id mono">{{ module.id }}</span>
                     </div>
-                    <SwitchRoot
-                        class="switch-root module-switch"
+                    <AppSwitch
                         :model-value="module.enabled"
                         :aria-label="`${module.enabled ? 'Disable' : 'Enable'} ${module.name}`"
                         @update:model-value="askToggle(module)"
-                    >
-                        <SwitchThumb class="switch-thumb" />
-                    </SwitchRoot>
+                    />
                 </header>
 
                 <p class="module-desc">{{ module.description }}</p>
@@ -136,7 +133,7 @@ const confirmToggle = async (): Promise<void> => {
                         <dt><i class="ph-duotone ph-plugs-connected" />Kafka path</dt>
                         <dd>{{ module.kafka }}</dd>
                     </div>
-                    <div class="gate">
+                    <div v-if="module.pages.length" class="gate">
                         <dt><i class="ph-duotone ph-browser" />Studio</dt>
                         <dd class="pages">
                             <RouterLink
@@ -170,7 +167,7 @@ const confirmToggle = async (): Promise<void> => {
                     <span class="effect-change" :class="{ 'effect-off': turningOff }">{{ turningOff ? 'Stops' : 'Starts' }}</span>
                     <span>{{ target.kafka }}</span>
                 </li>
-                <li>
+                <li v-if="target.pages.length">
                     <i class="ph-duotone ph-browser" />
                     <span class="effect-what">Studio</span>
                     <span class="effect-change" :class="{ 'effect-off': turningOff }">{{ turningOff ? 'Marked off' : 'Active' }}</span>
@@ -252,17 +249,6 @@ const confirmToggle = async (): Promise<void> => {
     border-radius: 999px;
     background: color-mix(in srgb, var(--color-text) 5%, transparent);
 }
-
-/* A larger switch than the shared one: it is the card's primary action. */
-.module-switch { width: 44px; height: 26px; cursor: pointer; }
-.module-switch[data-state='unchecked'] {
-    background: color-mix(in srgb, var(--color-text) 16%, transparent);
-    border-color: transparent;
-}
-.module-switch :deep(.switch-thumb) { width: 18px; height: 18px; top: 3px; left: 3px; box-shadow: 0 1px 3px color-mix(in srgb, #020b18 30%, transparent); }
-.module-switch[data-state='checked'] :deep(.switch-thumb) { translate: 18px 0; }
-.module-switch[data-disabled] { opacity: 0.45; cursor: not-allowed; }
-.module-switch:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
 
 .module-desc { margin: 0; font-size: 14px; line-height: 1.55; color: var(--muted); }
 

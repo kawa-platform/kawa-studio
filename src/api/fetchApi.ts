@@ -12,7 +12,7 @@ import {
     type GovernanceRuleView,
     type GovernanceVariableView,
     type GovernanceView,
-    type GroupView, type ModuleView,
+    type GroupView, type ModuleView, type OAuthClientConfigView,
     type RoleView,
     type Topic,
     type VirtualTopicPatch,
@@ -209,4 +209,13 @@ export const fetchApi: KawaApi = {
             method: 'PUT',
             body: JSON.stringify(body),
         }),
+
+    listOAuthClients: () => adminRequest<OAuthClientConfigView[]>('/admin/oauth-clients'),
+    upsertOAuthClient: (id, body) =>
+        adminRequest<OAuthClientConfigView>(`/admin/oauth-clients/${encodeURIComponent(id)}`, {
+            method: 'PUT',
+            body: JSON.stringify(body),
+        }),
+    deleteOAuthClient: (id) =>
+        adminRequest<void>(`/admin/oauth-clients/${encodeURIComponent(id)}`, {method: 'DELETE'}),
 };

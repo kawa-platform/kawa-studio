@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from './error';
-import { authorizeUrl, fetchLoginChallenge, pkceChallenge, submitLogin } from './oauth';
+import { authorizeUrl, fetchLoginChallenge, fetchLoginClient, pkceChallenge, submitLogin } from './oauth';
 
 afterEach(() => {
     vi.restoreAllMocks();
@@ -83,5 +83,31 @@ describe('oauth client', () => {
 
         // then
         await expect(failure).rejects.toEqual(new ApiError(error, message));
+    });
+});
+
+describe('fetchLoginClient', () => {
+    const asking = { clientId: 'https://a.example/c.json', clientName: 'A', redirectHost: 'localhost', audience: 'mcp', registered: false };
+
+    it('asks the gateway who is behind the challenge', async () => {
+        // given
+        const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => asking });
+        vi.stubGlobal('fetch', fetchMock);
+
+        // when
+        const client = await fetchLoginClient('a.b/c');
+
+        // then
+        expect(client).toEqual(asking);
+        expect(fetchMock.mock.calls[0]![0]).toMatch(/\/oauth\/login-challenge\?login_challenge=a\.b%2Fc$/);
+    });
+
+    it.each([
+        ['an expired challenge', () => vi.fn().mockResolvedValue({ ok: false, status: 400, json: async () => ({}) })],
+        ['no answer', () => vi.fn().mockRejectedValue(new TypeError('network'))],
+    ])('resolves null for %s', async (_, makeFetch) => {
+        vi.stubGlobal('fetch', makeFetch());
+
+        expect(await fetchLoginClient('x')).toBeNull();
     });
 });

@@ -353,6 +353,19 @@ export interface TokenResponse {
     refresh_token: string;
 }
 
+/// GET /oauth/login-challenge: who is asking behind a login challenge, as the gateway verified it.
+export interface LoginClientView {
+    clientId: string;
+    /// The client's display name: its metadata document's `client_name`, else its client id.
+    clientName: string;
+    /// The host the browser returns to after the login.
+    redirectHost: string;
+    /// What the client's tokens are accepted for: `mcp` only on the MCP endpoint, `admin` on the whole admin API.
+    audience: 'mcp' | 'admin';
+    /// Whether an admin registered the client; `false` for a client identifying itself with a metadata document.
+    registered: boolean;
+}
+
 /// The admin server's `POST /oauth/token` error response (RFC 6749 §5.2).
 export interface TokenErrorBody {
     error: string;
@@ -398,4 +411,29 @@ export interface ModuleView {
 /// PUT /modules/{id} body: switches the module on or off on every gateway replica.
 export interface UpdateModuleRequest {
     enabled: boolean;
+}
+
+// ── OAuth clients (admin server, /admin/oauth-clients) ——————————————————
+// Pre-registered public PKCE clients of the gateway's built-in authorization server, e.g. MCP
+// tools. They have no secret.
+
+/// Where an OAuth client's tokens are accepted: `mcp` only on `POST /mcp`, `admin` on the whole admin API.
+export type OAuthClientAudience = 'mcp' | 'admin';
+
+/// GET /admin/oauth-clients item. `id` is the `client_id` the client signs in with.
+export interface OAuthClientConfigView {
+    id: string;
+    name: string | null;
+    enabled: boolean;
+    redirectUris: string[];
+    audience: OAuthClientAudience;
+}
+
+/// PUT /admin/oauth-clients/{id} body, a full replace: a field left out takes its default. The id
+/// comes from the path.
+export interface OAuthClientRequest {
+    name?: string | null;
+    enabled?: boolean;
+    redirectUris: string[];
+    audience: OAuthClientAudience;
 }

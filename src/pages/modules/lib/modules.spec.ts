@@ -21,4 +21,10 @@ describe('toModuleCards', () => {
 
         expect(cards.map((card) => card.id)).toEqual(['rbac']);
     });
+
+    it('links the MCP server card to the OAuth clients page', () => {
+        const [card] = toModuleCards([{ id: 'mcp', enabled: false }]);
+
+        expect(card?.pages).toEqual([{ label: 'OAuth clients', to: '/oauth-clients' }]);
+    });
 });

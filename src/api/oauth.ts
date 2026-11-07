@@ -1,8 +1,11 @@
 import { ApiError } from './error';
-import type { TokenErrorBody, TokenResponse } from './types';
+import type { LoginClientView, TokenErrorBody, TokenResponse } from './types';
 
 /// The admin server, which is the OAuth authorization server when `admin.auth.type` is `oauth`.
 const ADMIN_BASE = (import.meta.env.VITE_ADMIN_API_BASE?.trim() || 'http://localhost:8080').replace(/\/$/, '');
+
+/// The gateway's MCP endpoint, which MCP tools are pointed at.
+export const MCP_URL = ADMIN_BASE + '/mcp';
 
 /// kawa studio's OAuth client id (`admin.auth.settings.clientId` on the gateway).
 export const CLIENT_ID = 'kawa-studio';
@@ -87,6 +90,27 @@ export async function submitLogin(loginChallenge: string, username: string, pass
     return (body as { redirect_to: string }).redirect_to;
 }
 
+/// Logs in for `loginChallenge` as the user already signed in to studio, proven by their admin access token,
+/// instead of with a password; resolves to the URL to send the browser to next, like [submitLogin].
+export async function continueLogin(loginChallenge: string, accessToken: string): Promise<string> {
+    const body = await post('/oauth/login', 'application/json',
+        JSON.stringify({ login_challenge: loginChallenge }), { authorization: 'Bearer ' + accessToken });
+    return (body as { redirect_to: string }).redirect_to;
+}
+
+/// Who is asking behind `loginChallenge`, for the login page to show before the credentials; the gateway
+/// verifies the challenge, so the page does not decode it. Resolves `null` when it cannot be told (an
+/// expired challenge, an older gateway, no answer): the login itself reports a challenge that is no good.
+export async function fetchLoginClient(loginChallenge: string): Promise<LoginClientView | null> {
+    try {
+        const response = await fetch(ADMIN_BASE + '/oauth/login-challenge?login_challenge=' + encodeURIComponent(loginChallenge));
+        if (!response.ok) return null;
+        return await response.json() as LoginClientView;
+    } catch {
+        return null;
+    }
+}
+
 /// Redeems the authorization code from the callback; the response starts a session.
 export function requestCodeTokens(code: string, verifier: string): Promise<TokenResponse> {
     return requestTokens({
@@ -110,10 +134,10 @@ async function requestTokens(form: Record<string, string>): Promise<TokenRespons
         new URLSearchParams(form).toString()) as TokenResponse;
 }
 
-async function post(path: string, contentType: string, body: string): Promise<unknown> {
+async function post(path: string, contentType: string, body: string, headers: Record<string, string> = {}): Promise<unknown> {
     let response: Response;
     try {
-        response = await fetch(ADMIN_BASE + path, { method: 'POST', headers: { 'content-type': contentType }, body });
+        response = await fetch(ADMIN_BASE + path, { method: 'POST', headers: { 'content-type': contentType, ...headers }, body });
     } catch {
         throw new ApiError('network', 'Could not reach the gateway.');
     }
