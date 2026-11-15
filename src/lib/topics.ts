@@ -3,7 +3,9 @@ import type { Topic } from '@/api/types';
 export const childrenOf = (topics: Topic[], physicalName: string): Topic[] =>
     topics.filter((t) => t.type === 'virtual' && t.physicalTopic === physicalName);
 
-export const isInternalTopic = (t: Topic) => t.name.startsWith("__")
+/// Internal topics start with an underscore: `__consumer_offsets`, but also
+/// single-prefixed ones like `_schemas` or `_confluent-metrics`.
+export const isInternalTopic = (t: Topic) => t.name.startsWith('_');
 
 const UNITS = ['B', 'kB', 'MB', 'GB', 'TB', 'PB'];
 
