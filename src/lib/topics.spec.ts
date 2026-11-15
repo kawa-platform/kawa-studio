@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Topic } from '@/api/types';
-import { childrenOf, formatBytes, formatCount } from './topics';
+import { childrenOf, formatBytes, formatCount, isInternalTopic } from './topics';
 
 const physical = (name: string): Topic => ({
     type: 'physical', name, partitions: 3, replicationFactor: 2, messageCount: 10, sizeBytes: 2048,
@@ -25,6 +25,18 @@ describe('childrenOf', () => {
         expect(childrenOf(topics, 'orders.v1').map((topic) => topic.name)).toEqual(['orders', 'orders-eu']);
         expect(childrenOf(topics, 'payments.v2').map((topic) => topic.name)).toEqual(['payments-high-value']);
         expect(childrenOf(topics, 'missing.v1')).toEqual([]);
+    });
+});
+
+describe('isInternalTopic', () => {
+    it('treats single and double underscore prefixes as internal', () => {
+        expect(isInternalTopic(physical('__consumer_offsets'))).toBe(true);
+        expect(isInternalTopic(physical('_schemas'))).toBe(true);
+    });
+
+    it('leaves regular topics alone, even with underscores elsewhere', () => {
+        expect(isInternalTopic(physical('orders.v1'))).toBe(false);
+        expect(isInternalTopic(physical('order_events'))).toBe(false);
     });
 });
 
