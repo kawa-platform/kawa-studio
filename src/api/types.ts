@@ -402,10 +402,16 @@ export interface UpdateAdminUserRequest {
 
 // ── Admin Modules ———————————————————————
 
-/// GET /modules: a gateway module and whether it is enabled.
+/// GET /modules: a gateway module, whether it is switched on and whether this gateway can run it.
 export interface ModuleView {
     id: string;
     enabled: boolean;
+    /// Whether this gateway can run the module, independent of `enabled`.
+    available: boolean;
+    /// Why the module cannot run; only while `available` is false.
+    unavailableReason?: string;
+    /// The URL agents connect to; only on `mcp` while it is enabled and available.
+    connectUrl?: string;
 }
 
 /// PUT /modules/{id} body: switches the module on or off on every gateway replica.

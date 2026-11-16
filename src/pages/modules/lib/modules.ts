@@ -1,7 +1,7 @@
 import type { ModuleView } from '@/api/types';
 
-/// What Studio knows about a gateway module: everything except whether it is enabled, which only the
-/// gateway knows (`GET /admin/modules`).
+/// What Studio knows about a gateway module: everything except its state (enabled, available, connect URL),
+/// which only the gateway knows (`GET /admin/modules`).
 export interface ModuleRef {
     name: string;
     icon: string;
@@ -10,6 +10,8 @@ export interface ModuleRef {
     kafka: string;
     /// The Studio pages it brings.
     pages: readonly { label: string; to: string }[];
+    /// The module's page in the kawa documentation.
+    docs?: string;
     /// Shown on the card when switching the module off has consequences beyond its own features.
     caution?: string;
 }
@@ -45,23 +47,21 @@ export const MODULE_REFS: Readonly<Record<string, ModuleRef>> = {
     mcp: {
         name: 'MCP server',
         icon: 'ph-robot',
-        description: 'Lets AI assistants such as Claude Code and Cursor inspect the gateway over the Model Context Protocol, signing in with an admin token or an OAuth client.',
-        kafka: 'None; serves MCP at POST /mcp on the admin port',
+        description: 'Lets AI agents such as Claude Code inspect kawa. Read-only: agents never change anything.',
+        kafka: 'Nothing; agents connect to the admin port, not the Kafka path',
         pages: [{ label: 'OAuth clients', to: '/oauth-clients' }],
+        docs: 'https://kawa-platform.github.io/kawa-docs/docs/modules/mcp',
     },
 };
 
-/// A module card: the gateway's identifier and enabled state, described by its [ModuleRef].
-export interface ModuleCard extends ModuleRef {
-    id: string;
-    enabled: boolean;
-}
+/// A module card: the gateway's view of the module, described by its [ModuleRef].
+export type ModuleCard = ModuleRef & ModuleView;
 
-/// One card per module the gateway reports, in its order. Only `enabled` is taken from the gateway;
-/// everything else comes from the module's [ModuleRef]. Studio and the gateway share the module set.
+/// One card per module the gateway reports, in its order. The state comes from the gateway; the description
+/// from the module's [ModuleRef]. Studio and the gateway share the module set.
 export function toModuleCards(modules: readonly ModuleView[]): ModuleCard[] {
     return modules.flatMap((module) => {
         const ref = MODULE_REFS[module.id];
-        return ref ? [{ ...ref, id: module.id, enabled: module.enabled }] : [];
+        return ref ? [{ ...ref, ...module }] : [];
     });
 }
