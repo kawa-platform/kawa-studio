@@ -106,13 +106,16 @@ const confirmToggle = async (): Promise<void> => {
                 v-for="module in cards"
                 :key="module.id"
                 class="module"
-                :class="{ 'module-disabled': !module.enabled }"
+                :class="{ 'module-disabled': !module.enabled || !module.available }"
             >
                 <header class="module-head">
                     <span class="module-icon"><i :class="['ph-duotone', module.icon]" /></span>
                     <div class="module-title">
                         <h2>{{ module.name }}</h2>
-                        <span class="module-id mono">{{ module.id }}</span>
+                        <span class="module-tags">
+                            <span class="module-id mono">{{ module.id }}</span>
+                            <span v-if="!module.available" class="module-unavailable">Unavailable</span>
+                        </span>
                     </div>
                     <AppSwitch
                         :model-value="module.enabled"
@@ -122,6 +125,11 @@ const confirmToggle = async (): Promise<void> => {
                 </header>
 
                 <p class="module-desc">{{ module.description }}</p>
+
+                <div v-if="!module.available" class="caution caution-strong" role="note">
+                    <i class="ph-duotone ph-warning-circle" />
+                    <span>Unavailable<template v-if="module.unavailableReason">: {{ module.unavailableReason }}</template></span>
+                </div>
 
                 <div v-if="module.caution" class="caution" role="note">
                     <i class="ph-duotone ph-warning" />
@@ -145,6 +153,18 @@ const confirmToggle = async (): Promise<void> => {
                             >
                                 {{ page.label }}<i class="ph-duotone ph-arrow-up-right" />
                             </RouterLink>
+                        </dd>
+                    </div>
+                    <div v-if="module.connectUrl" class="gate">
+                        <dt><i class="ph-duotone ph-link" />Connect URL</dt>
+                        <dd class="mono connect-url">{{ module.connectUrl }}</dd>
+                    </div>
+                    <div v-if="module.docs" class="gate">
+                        <dt><i class="ph-duotone ph-book-open" />Docs</dt>
+                        <dd class="pages">
+                            <a class="page-chip" :href="module.docs" target="_blank" rel="noopener">
+                                {{ module.name }}<i class="ph-duotone ph-arrow-up-right" />
+                            </a>
                         </dd>
                     </div>
                 </dl>
@@ -241,6 +261,15 @@ const confirmToggle = async (): Promise<void> => {
 
 .module-title { display: flex; flex-direction: column; gap: 3px; min-width: 0; margin-right: auto; }
 .module-title h2 { font-size: 17px; font-weight: 650; letter-spacing: -0.015em; margin: 0; }
+.module-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.module-unavailable {
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: 999px;
+    color: var(--error);
+    background: color-mix(in srgb, var(--error) 11%, transparent);
+}
 .module-id {
     align-self: flex-start;
     font-size: 11.5px;
@@ -285,6 +314,7 @@ const confirmToggle = async (): Promise<void> => {
 .gate dt i { font-size: 15px; }
 .gate dd { margin: 0; font-size: 13px; color: var(--color-text); min-width: 0; }
 .gate dd.mono { font-size: 12.5px; }
+.connect-url { overflow-wrap: anywhere; user-select: all; }
 
 .pages { display: flex; flex-wrap: wrap; gap: 6px; }
 .page-chip {

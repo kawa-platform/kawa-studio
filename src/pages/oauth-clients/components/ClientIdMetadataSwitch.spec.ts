@@ -33,8 +33,8 @@ const mountSwitch = () => mount(ClientIdMetadataSwitch, {
 });
 
 const modules = (mcp: boolean, cimd: boolean): ModuleView[] => [
-    { id: 'mcp', enabled: mcp },
-    { id: 'mcp-cimd', enabled: cimd },
+    { id: 'mcp', enabled: mcp, available: true },
+    { id: 'mcp-cimd', enabled: cimd, available: true },
 ];
 
 describe('ClientIdMetadataSwitch', () => {
@@ -63,7 +63,7 @@ describe('ClientIdMetadataSwitch', () => {
     it('is on by default and does not show when the gateway has no such module', () => {
         expect(mountSwitch().get('[role="switch"]').attributes('aria-checked')).toBe('true');
 
-        mocks.modules = [{ id: 'mcp', enabled: true }];
+        mocks.modules = [{ id: 'mcp', enabled: true, available: true }];
         expect(mountSwitch().find('section').exists()).toBe(false);
     });
 
