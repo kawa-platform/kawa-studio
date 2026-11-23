@@ -5,6 +5,7 @@ import type { Topic } from '@/api/types';
 import ManagedBadge from '@/components/ManagedBadge.vue';
 import { managedTitle } from '@/lib/managed';
 import { childrenOf, formatBytes, formatCount } from '@/lib/topics';
+import { deliveredFormat, describeFormat, describeStep, outputFromConfig } from '../lib/transformations';
 import FilterBadge from './FilterBadge.vue';
 import TopicTypeTag from './TopicTypeTag.vue';
 
@@ -46,6 +47,17 @@ const meta = computed<{ k: string; v: string }[]>(() => {
         { k: 'Messages', v: isVirtual ? 'not reported for virtual topics' : formatCount(p.messageCount) },
         { k: 'On-disk size', v: isVirtual ? 'see ' + p.name : formatBytes(p.sizeBytes) },
     ];
+});
+
+/// Only a topic with steps shows the section, so the drawer of any other topic is unchanged. The
+/// trailing `convert` is shown as the delivered format rather than as a step.
+const transformations = computed(() => {
+    const steps = props.topic?.type === 'virtual' ? props.topic.transformations : null;
+    if (!steps?.length) return null;
+    return {
+        steps: steps.filter((step) => step.type !== 'convert'),
+        output: deliveredFormat(props.topic?.valueFormat ?? null, outputFromConfig(steps)),
+    };
 });
 
 const jumpToPhysical = (): void => {
@@ -93,6 +105,18 @@ const jumpToPhysical = (): void => {
                             <FilterBadge :filter="topic.filter" long />
                             <pre class="pre expr">{{ topic.filter?.expression ?? 'All records pass through unfiltered.' }}</pre>
                         </section>
+
+                        <section v-if="transformations" data-transformations>
+                            <h6>Transformations</h6>
+                            <p class="note mono">
+                                {{ describeFormat(topic.valueFormat ?? null) }}
+                                <i class="ph-duotone ph-arrow-right" />
+                                {{ describeFormat(transformations.output) }}
+                            </p>
+                            <ol v-if="transformations.steps.length" class="pre expr steps">
+                                <li v-for="(step, index) in transformations.steps" :key="index">{{ describeStep(step) }}</li>
+                            </ol>
+                        </section>
                     </template>
 
                     <section>
@@ -127,6 +151,7 @@ const jumpToPhysical = (): void => {
 </template>
 
 <style scoped>
+.steps { margin: 0; padding-left: 26px; }
 .drawer-overlay { background: color-mix(in srgb, #020b18 52%, transparent); }
 
 .head {

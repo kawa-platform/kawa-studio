@@ -45,6 +45,8 @@ export interface Topic {
     physicalTopic?: string;
     filter?: TopicFilter | null;
     valueFormat?: PayloadFormatConfig | null;
+    /// Virtual topics only, `[]` when none; null for physical topics.
+    transformations?: TransformationConfig[] | null;
     /// Virtual topics only; absent from physical-topic summaries.
     exposePhysicalTopic?: boolean;
     config?: Record<string, string>;
@@ -132,14 +134,41 @@ export interface VirtualCluster {
     state: 'live' | 'next';
 }
 
-/// The decode format for a virtual topic's record values. Only JSON exists in the gateway:
-/// it decodes each payload so CEL content filters see the parsed document.
-export type ValueFormat = 'json';
+/// What the gateway does with a record whose value does not decode: drop it, deliver it as is, or
+/// fail the fetch. Unset means `skip`.
+export type OnDecodeError = 'skip' | 'include' | 'fail';
 
-/// The wire representation of a record value encoding — the gateway's sealed `PayloadFormatConfig`.
-export interface PayloadFormatConfig {
-    type: 'json';
-}
+/// The wire representation of a record value encoding — the gateway's sealed `PayloadFormat`.
+/// As a virtual topic's `valueFormat` it decodes values for CEL filters and transformations; as a
+/// `convert` step's format it picks the encoding of the transformed value. Unset optional fields
+/// are omitted, never null.
+export type PayloadFormatConfig =
+    | { type: 'json'; onDecodeError?: OnDecodeError }
+    /// `subject` names the schema transformed values are written with (required when this is the
+    /// output format); `version` pins a subject version (latest when omitted) and needs `subject`.
+    | { type: 'avro'; onDecodeError?: OnDecodeError; subject?: string; version?: number }
+    /// `root` names the root element (required when this is the output format).
+    | { type: 'xml'; onDecodeError?: OnDecodeError; root?: string };
+
+/// The decode format kinds of a virtual topic's record values.
+export type ValueFormat = PayloadFormatConfig['type'];
+
+/// Any JSON value: a `defaultField` step's default.
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
+/// One step of a virtual topic's value transformation pipeline — the gateway's sealed
+/// `Transformation`. Steps run in order on the decoded value, on fetch only. Field paths are
+/// dotted (`customer.name`); a list on a path applies the step to every element.
+export type TransformationConfig =
+    | { type: 'dropFields'; fields: string[] }
+    | { type: 'renameField'; from: string; to: string }
+    | { type: 'defaultField'; field: string; value: JsonValue }
+    /// The expression's result replaces the whole value.
+    | { type: 'cel'; expression: string }
+    /// Only as the last step: the format the transformed value is encoded in.
+    | { type: 'convert'; format: PayloadFormatConfig };
+
+export type TransformationType = TransformationConfig['type'];
 
 /// The single read filter of a virtual topic: one header test or one CEL expression. The
 /// kinds mirror the gateway's sealed `VirtualTopicFilterConfig` exactly; CEL is the only
@@ -156,14 +185,20 @@ export interface VirtualTopicConfig {
     exposePhysicalTopic: boolean;
     valueFormat?: PayloadFormatConfig;
     filter?: VirtualTopicConfigFilter;
+    /// Omitted means none; the gateway's responses always carry it, `[]` when none.
+    transformations?: TransformationConfig[];
 }
 
+/// PATCH /topics/{name} body. An omitted field keeps its current value: `filter` and `valueFormat`
+/// are cleared only with an explicit null; `transformations` is kept when omitted or null, removed
+/// with `[]` and replaced by a list.
 export interface VirtualTopicPatch {
     name?: string;
     topic?: string;
     exposePhysicalTopic?: boolean;
     valueFormat?: PayloadFormatConfig | null;
     filter?: VirtualTopicConfigFilter | null;
+    transformations?: TransformationConfig[] | null;
 }
 
 export interface Clusters {
