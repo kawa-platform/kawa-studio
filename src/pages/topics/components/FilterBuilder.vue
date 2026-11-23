@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { ValueFormat } from '@/api/types';
 import CelEditor from '../../clusters/components/CelEditor.vue';
 import SearchSelect, { type SelectItem } from '../../publish/components/SearchSelect.vue';
 import {
@@ -13,7 +12,6 @@ import {
 } from '../lib/virtualTopicConfig';
 
 const model = defineModel<VirtualTopicFilterForm>({ required: true });
-const valueFormat = defineModel<ValueFormat | null>('valueFormat', { default: null });
 
 type HeaderType = (typeof headerClauseTypes)[number];
 
@@ -25,9 +23,6 @@ const kind = computed<string>({
         if (value === 'cel') {
             model.value = { ...model.value, clause: { type: 'cel', expression: '' } };
         } else if (value === 'header') {
-            // A header filter never touches the record value, so drop a previously set format
-            // rather than silently keeping `valueFormat` on the topic.
-            valueFormat.value = null;
             model.value = { ...model.value, clause: { type: 'headerEquals', header: '', value: '' } };
         }
     },
@@ -70,10 +65,6 @@ const patchHeader = (patch: { type?: HeaderType; header?: string; value?: string
 const patchCel = (expression: string): void => {
     if (!celClause.value) return;
     setClause({ ...celClause.value, expression });
-};
-
-const setValueFormat = (value: string): void => {
-    valueFormat.value = (value || null) as ValueFormat | null;
 };
 </script>
 
@@ -128,22 +119,12 @@ const setValueFormat = (value: string): void => {
 
         <template v-else-if="celClause">
             <div class="field">
-                <label for="vf-value-format">Record value format</label>
-                <select
-                    id="vf-value-format"
-                    class="input"
-                    :value="valueFormat ?? ''"
-                    @change="setValueFormat(($event.target as HTMLSelectElement).value)"
-                >
-                    <option value="">No value format</option>
-                    <option value="json">JSON</option>
-                </select>
                 <div class="hint">
                     Available CEL bindings:
                     <ul class="bindings">
                         <li>
                             <code>value</code>
-                            <span>the record value as a string or a decoded document if a format is set</span>
+                            <span>the record value as a string, or the decoded document when a value format is set</span>
                         </li>
                         <li>
                             <code>headers</code>

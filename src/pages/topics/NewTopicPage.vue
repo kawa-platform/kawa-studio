@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
-import { type ValueFormat } from '@/api/types';
+import type { JsonValue, PayloadFormatConfig, TransformationConfig } from '@/api/types';
 import { isInternalTopic } from '@/lib/topics';
 import { managedTitle } from '@/lib/managed';
 import RbacBanner from '../rbac/components/RbacBanner.vue';
@@ -10,6 +10,9 @@ import { usePatchVirtualTopic, usePhysicalTopics, useTopics, useUpsertVirtualTop
 import { useClusters } from '../clusters/queries';
 import ConfigEditor from './components/ConfigEditor.vue';
 import FilterBuilder from './components/FilterBuilder.vue';
+import TransformationPreview from './components/TransformationPreview.vue';
+import TransformationSteps from './components/TransformationSteps.vue';
+import ValueFormatFields from './components/ValueFormatFields.vue';
 import SearchSelect, { type SelectItem } from '../publish/components/SearchSelect.vue';
 import {
     buildVirtualTopicConfig,
@@ -18,6 +21,13 @@ import {
     virtualTopicFormFromTopic,
     type VirtualTopicFilterForm,
 } from './lib/virtualTopicConfig';
+import {
+    fieldsBefore,
+    hasErrors,
+    stepErrorFromMessage,
+    validateTransformations,
+    type StepForm,
+} from './lib/transformations';
 
 type TopicKind = 'virtual' | 'physical';
 
@@ -43,8 +53,17 @@ const name = ref('');
 const target = ref('');
 const exposePhysicalTopic = ref(false);
 const filters = ref<VirtualTopicFilterForm>({ clause: null });
-const valueFormat = ref<ValueFormat | null>(null);
+const valueFormat = ref<PayloadFormatConfig | null>(null);
+const steps = ref<StepForm[]>([]);
+/// The format transformed values are delivered in; null delivers them in the value format.
+const outputFormat = ref<PayloadFormatConfig | null>(null);
+/// The topic's steps when the form opened: the edit PATCH sends steps only when they changed.
+const loadedSteps = ref<TransformationConfig[]>([]);
+/// The preview's sample record value, as typed.
+const sample = ref('');
 const serverError = ref<string | null>(null);
+/// A gateway 400 about one step, shown on that step's card until the steps change.
+const stepServerError = ref<{ index: number; message: string } | null>(null);
 
 watch(existing, (topic) => {
     if (!topic) return;
@@ -54,7 +73,35 @@ watch(existing, (topic) => {
     exposePhysicalTopic.value = form.exposePhysicalTopic;
     valueFormat.value = form.valueFormat;
     filters.value = form.filters;
+    steps.value = form.transformations;
+    outputFormat.value = form.outputFormat;
+    loadedSteps.value = topic.transformations ?? [];
 }, { immediate: true });
+
+watch([steps, outputFormat], () => { stepServerError.value = null; }, { deep: true });
+
+
+const pipelineErrors = computed(() => validateTransformations(valueFormat.value, steps.value, outputFormat.value));
+
+
+/// The gateway numbers the output format as the step after the field steps (its trailing `convert`).
+const outputErrors = computed(() =>
+    stepServerError.value?.index === steps.value.length
+        ? [...pipelineErrors.value.output, stepServerError.value.message]
+        : pipelineErrors.value.output);
+
+const stepErrors = computed(() => pipelineErrors.value.steps.map((errors, index) =>
+    stepServerError.value?.index === index ? [...errors, stepServerError.value.message] : errors));
+
+const parsedSample = computed<JsonValue | undefined>(() => {
+    try {
+        return sample.value.trim() ? JSON.parse(sample.value) as JsonValue : undefined;
+    } catch {
+        return undefined;
+    }
+});
+
+const stepFields = computed(() => steps.value.map((_, index) => fieldsBefore(parsedSample.value, steps.value, index)));
 
 const taken = computed(() =>
     new Set((clusters.value?.aliases ?? []).map((a) => a.name)));
@@ -83,22 +130,26 @@ const canSubmit = computed(() =>
     && !managedBy.value
     && !nameError.value
     && filterComplete.value
+    && !hasErrors(pipelineErrors.value)
     && !upsert.isPending.value
     && !patch.isPending.value);
 
 const submit = async (): Promise<void> => {
     serverError.value = null;
+    stepServerError.value = null;
     try {
         const form = {
             topic: target.value,
             exposePhysicalTopic: exposePhysicalTopic.value,
             valueFormat: valueFormat.value,
             filters: filters.value,
+            transformations: steps.value,
+            outputFormat: outputFormat.value,
         };
         if (isEdit.value) {
             await patch.mutateAsync({
                 currentName: originalName.value,
-                request: buildVirtualTopicPatch(form, name.value.trim()),
+                request: buildVirtualTopicPatch(form, name.value.trim(), loadedSteps.value),
             });
         } else {
             await upsert.mutateAsync({
@@ -108,7 +159,13 @@ const submit = async (): Promise<void> => {
         }
         await router.push({ name: 'topics' });
     } catch (cause) {
-        serverError.value = cause instanceof Error ? cause.message : 'Request failed.';
+        const message = cause instanceof Error ? cause.message : 'Request failed.';
+        const step = stepErrorFromMessage(message);
+        const outputIndex = outputFormat.value ? steps.value.length : -1;
+        if (step && (step.index < steps.value.length || step.index === outputIndex)) {
+            stepServerError.value = step;
+        }
+        else serverError.value = message;
     }
 };
 
@@ -165,8 +222,8 @@ const submitPhysical = async (): Promise<void> => {
                 <span class="edit-name mono">{{ name || originalName }}</span>
             </h1>
             <p v-if="!isEdit" class="lede">
-                A topic is either virtual or physical. A virtual topic is a config entry, not a Kafka
-                object: the gateway resolves the virtual name to the physical topic on every request. A
+                A topic is either virtual or physical.
+                The gateway resolves the virtual name to the physical topic on every request. A
                 physical topic exists on the Kafka cluster itself.
             </p>
         </div>
@@ -231,10 +288,59 @@ const submitPhysical = async (): Promise<void> => {
             </section>
 
             <section>
-                <h2>2 · Read filter</h2>
-                <FilterBuilder
-                    v-model="filters"
-                    v-model:value-format="valueFormat"
+                <h2>2 · Value format</h2>
+                <ValueFormatFields
+                    v-model="valueFormat"
+                    id-prefix="vf-value-format"
+                    label="Record value format"
+                    none-label="No value format"
+                    :output="steps.length > 0 && !outputFormat"
+                    :errors="pipelineErrors.valueFormat"
+                />
+                <p class="hint">
+                    How record values are decoded. A CEL filter reads the decoded value; transformations need a format.
+                </p>
+            </section>
+
+            <section>
+                <h2>3 · Read filter</h2>
+                <FilterBuilder v-model="filters" />
+            </section>
+
+
+            <section>
+                <h2>4 · Transformations</h2>
+                <p class="hint section-lede">
+                    Applied in order to each record value when clients read the virtual topic; keys and headers are never
+                    changed. Field paths are dotted (<code>customer.name</code>); a list on the path applies the step to
+                    every element. Clients reading the physical topic directly get the stored value.
+                </p>
+                <TransformationSteps v-model="steps" :errors="stepErrors" :fields="stepFields" />
+            </section>
+
+            <section>
+                <h2>5 · Output format</h2>
+                <ValueFormatFields
+                    v-model="outputFormat"
+                    id-prefix="tf-output"
+                    label="Deliver values as"
+                    none-label="Same as the value format"
+                    output
+                    :errors="outputErrors"
+                />
+                <p class="hint">
+                    The format clients read transformed values in. Avro needs a subject to encode with, XML a root element.
+                </p>
+            </section>
+
+            <section v-if="steps.length || outputFormat">
+                <h2>6 · Preview</h2>
+                <TransformationPreview
+                    v-model:sample="sample"
+                    :steps="steps"
+                    :value-format="valueFormat"
+                    :output-format="outputFormat"
+                    :physical-topic="target"
                 />
             </section>
 
@@ -333,6 +439,7 @@ const submitPhysical = async (): Promise<void> => {
 }
 .edit-name { color: var(--brand-text); overflow-wrap: anywhere; }
 .tabs { margin-bottom: 30px; }
+.section-lede { margin: 0 0 12px; }
 .seg-list { display: flex; }
 .extra { margin-top: 22px; }
 .extra > label {

@@ -1,7 +1,7 @@
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { reactive } from 'vue';
 import { describe, expect, it, vi } from 'vitest';
-import type { ValueFormat, VirtualTopicConfigFilter } from '@/api/types';
+import type { VirtualTopicConfigFilter } from '@/api/types';
 import type { VirtualTopicFilterForm } from '../lib/virtualTopicConfig';
 import FilterBuilder from './FilterBuilder.vue';
 import CelEditor from '../../clusters/components/CelEditor.vue';
@@ -43,14 +43,14 @@ const { KindSelectStub } = vi.hoisted(() => ({
 
 vi.mock('@/pages/publish/components/SearchSelect.vue', () => ({ default: KindSelectStub }));
 
-/// Mounts the builder behind a real parent using `v-model`/`v-model:valueFormat`, so
-/// emitted updates flow back through Vue's reactivity exactly as they do in the page.
-function mountBuilder(initial: VirtualTopicFilterForm, valueFormat: ValueFormat | null = null) {
-    const state = reactive({ filters: initial, valueFormat });
+/// Mounts the builder behind a real parent using `v-model`, so emitted updates flow back
+/// through Vue's reactivity exactly as they do in the page.
+function mountBuilder(initial: VirtualTopicFilterForm) {
+    const state = reactive({ filters: initial });
     const wrapper = mount({
         components: { FilterBuilder },
         setup: () => state,
-        template: '<FilterBuilder v-model="filters" v-model:valueFormat="valueFormat" />',
+        template: '<FilterBuilder v-model="filters" />',
     });
     return { wrapper, state };
 }
@@ -102,46 +102,19 @@ describe('FilterBuilder', () => {
         expect(state.filters.clause).toEqual({ type: 'headerContains', header: 'region', value: 'eu' });
     });
 
-    it('choosing CEL creates a blank cel clause and shows the value format select', async () => {
+    it('choosing CEL creates a blank cel clause', async () => {
         const { wrapper, state } = mountBuilder({ clause: null });
 
         await pickKind(wrapper, 'cel');
 
         expect(state.filters.clause).toEqual({ type: 'cel', expression: '' });
-        expect(wrapper.find('#vf-value-format').exists()).toBe(true);
-        expect((wrapper.find('#vf-value-format').element as HTMLSelectElement).value).toBe('');
     });
 
-    it('offers No value format as a first-class option for a fresh CEL filter', () => {
+    /// The value format is the topic's own section now: transformations need it too.
+    it('has no value format select of its own', () => {
         const { wrapper } = mountBuilder({ clause: celClause });
 
-        expect(wrapper.find('#vf-value-format').text()).toContain('No value format');
-        expect((wrapper.find('#vf-value-format').element as HTMLSelectElement).value).toBe('');
-    });
-
-    it('writes the JSON value format for a CEL filter', async () => {
-        const { wrapper, state } = mountBuilder({ clause: celClause });
-
-        await wrapper.find('#vf-value-format').setValue('json');
-
-        expect(state.valueFormat).toBe('json');
-    });
-
-    it('clears a set value format back to none', async () => {
-        const { wrapper, state } = mountBuilder({ clause: celClause }, 'json');
-
-        await wrapper.find('#vf-value-format').setValue('');
-
-        expect(state.valueFormat).toBeNull();
-    });
-
-    it('switching a CEL filter to Header clears the value format', async () => {
-        const { wrapper, state } = mountBuilder({ clause: celClause }, 'json');
-
-        await pickKind(wrapper, 'header');
-
-        expect(state.valueFormat).toBeNull();
-        expect(state.filters.clause).toEqual({ type: 'headerEquals', header: '', value: '' });
+        expect(wrapper.find('#vf-value-format').exists()).toBe(false);
     });
 
     it('forwards a CEL expression edit into the clause', async () => {
@@ -150,12 +123,6 @@ describe('FilterBuilder', () => {
         wrapper.findComponent(CelEditor).vm.$emit('update:modelValue', 'value.amount > 200');
 
         expect(state.filters.clause).toEqual({ type: 'cel', expression: 'value.amount > 200' });
-    });
-
-    it('hides the value format select for a header filter', () => {
-        const { wrapper } = mountBuilder({ clause: headerClause }, 'json');
-
-        expect(wrapper.find('#vf-value-format').exists()).toBe(false);
     });
 
     it('documents every CEL binding in the hint list', () => {

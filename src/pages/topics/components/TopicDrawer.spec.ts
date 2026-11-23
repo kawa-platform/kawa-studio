@@ -70,4 +70,41 @@ describe('TopicDrawer', () => {
         expect(button?.title).toBe('Managed by kawa-operator, change it through Kubernetes');
         wrapper.unmount();
     });
+
+    it('shows no transformations section for a topic without steps', async () => {
+        const plain: Topic = { ...virtualTopic, valueFormat: { type: 'json' }, transformations: [] };
+        const wrapper = mount(TopicDrawer, {
+            props: { open: true, topic: plain, topics: [plain] },
+            attachTo: document.body,
+        });
+
+        await nextTick();
+
+        expect(document.body.querySelector('[data-transformations]')).toBeNull();
+        expect(document.body.textContent).not.toContain('Transformations');
+        wrapper.unmount();
+    });
+
+    it('lists the steps and the resolved formats of a transformed topic', async () => {
+        const transformed: Topic = {
+            ...virtualTopic,
+            valueFormat: { type: 'json' },
+            transformations: [
+                { type: 'dropFields', fields: ['customer.email'] },
+                { type: 'convert', format: { type: 'avro', subject: 'orders-value' } },
+            ],
+        };
+        const wrapper = mount(TopicDrawer, {
+            props: { open: true, topic: transformed, topics: [transformed] },
+            attachTo: document.body,
+        });
+
+        await nextTick();
+
+        const section = document.body.querySelector('[data-transformations]');
+        // The trailing convert is the delivered format, not a listed step.
+        expect([...section!.querySelectorAll('li')].map((li) => li.textContent)).toEqual(['drop customer.email']);
+        expect(section!.querySelector('.note')!.textContent).toMatch(/JSON\s+Avro \(orders-value\)/);
+        wrapper.unmount();
+    });
 });

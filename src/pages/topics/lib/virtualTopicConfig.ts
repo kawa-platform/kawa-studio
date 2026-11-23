@@ -1,6 +1,7 @@
-import type { PayloadFormatConfig, Topic, TopicFilter, ValueFormat, VirtualTopicConfig, VirtualTopicConfigFilter, VirtualTopicPatch } from '@/api/types';
+import type { PayloadFormatConfig, Topic, TopicFilter, TransformationConfig, VirtualTopicConfig, VirtualTopicConfigFilter, VirtualTopicPatch } from '@/api/types';
+import { buildFormat, buildTransformations, outputFromConfig, stepsFromConfig, type StepForm } from './transformations';
 
-export type { ValueFormat, VirtualTopicConfigFilter } from '@/api/types';
+export type { VirtualTopicConfigFilter } from '@/api/types';
 
 /// Which family a clause belongs to; drives the FilterBuilder UI. The gateway's only
 /// content filter is CEL (evaluated over the JSON-decoded value), so there is no
@@ -15,8 +16,12 @@ export interface VirtualTopicFilterForm {
 export interface VirtualTopicConfigForm {
     topic: string;
     exposePhysicalTopic: boolean;
-    valueFormat: ValueFormat | null;
+    valueFormat: PayloadFormatConfig | null;
     filters: VirtualTopicFilterForm;
+    /// The field steps; the output format is held apart and sent as the trailing `convert`.
+    transformations: StepForm[];
+    /// The format transformed values are delivered in, or null for the value format.
+    outputFormat: PayloadFormatConfig | null;
 }
 
 export interface VirtualTopicForm extends VirtualTopicConfigForm {
@@ -59,11 +64,14 @@ export function buildVirtualTopicConfig(form: VirtualTopicConfigForm): VirtualTo
         exposePhysicalTopic: form.exposePhysicalTopic,
     };
     if (form.valueFormat) {
-        const valueFormat: PayloadFormatConfig = { type: form.valueFormat };
-        config.valueFormat = valueFormat;
+        config.valueFormat = buildFormat(form.valueFormat);
     }
     if (form.filters.clause) {
         config.filter = trimmedClause(form.filters.clause);
+    }
+    const transformations = buildTransformations(form.transformations, form.outputFormat);
+    if (transformations.length > 0) {
+        config.transformations = transformations;
     }
     return config;
 }
@@ -71,13 +79,29 @@ export function buildVirtualTopicConfig(form: VirtualTopicConfigForm): VirtualTo
 /// The PATCH body for the edit form. PATCH clears a field with an explicit null, so unlike the
 /// create body both `filter` and `valueFormat` are always present — an empty form means "remove
 /// the filter / drop the value format" rather than "leave it as it is".
-export function buildVirtualTopicPatch(form: VirtualTopicConfigForm, name: string): VirtualTopicPatch {
-    return {
+///
+/// `transformations` works the other way round: omitted keeps the stored steps. It is sent only
+/// when the steps differ from `loaded` (the topic's steps when the form opened): `[]` removes them,
+/// a list replaces them. A topic whose steps were not touched gets the same body as before.
+export function buildVirtualTopicPatch(
+    form: VirtualTopicConfigForm,
+    name: string,
+    loaded: TransformationConfig[] = [],
+): VirtualTopicPatch {
+    const { transformations: _built, ...config } = buildVirtualTopicConfig(form);
+    const patch: VirtualTopicPatch = {
         name,
-        ...buildVirtualTopicConfig(form),
+        ...config,
         filter: form.filters.clause ? trimmedClause(form.filters.clause) : null,
-        valueFormat: form.valueFormat ? { type: form.valueFormat } : null,
+        valueFormat: form.valueFormat ? buildFormat(form.valueFormat) : null,
     };
+    const steps = buildTransformations(form.transformations, form.outputFormat);
+    // Both sides go through the same builder, so key order cannot make equal steps look changed.
+    const stored = buildTransformations(stepsFromConfig(loaded), outputFromConfig(loaded));
+    if (JSON.stringify(steps) !== JSON.stringify(stored)) {
+        patch.transformations = steps;
+    }
+    return patch;
 }
 
 /// Reverse-parse of the gateway's filter summary (see GetTopicsHandler): the five template
@@ -109,7 +133,9 @@ export function virtualTopicFormFromTopic(topic: Topic): VirtualTopicForm {
         name: topic.name,
         topic: topic.physicalTopic ?? '',
         exposePhysicalTopic: topic.exposePhysicalTopic ?? false,
-        valueFormat: topic.valueFormat?.type === 'json' ? 'json' : null,
+        valueFormat: topic.valueFormat ? { ...topic.valueFormat } : null,
         filters: { clause: clauseFromSummary(topic.filter ?? null) },
+        transformations: stepsFromConfig(topic.transformations),
+        outputFormat: outputFromConfig(topic.transformations),
     };
 }
