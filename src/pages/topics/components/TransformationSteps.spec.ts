@@ -136,4 +136,30 @@ describe('TransformationSteps', () => {
         expect(cards[0]!.find('.field-error').text()).toBe('Enter a CEL expression.');
         expect(cards[1]!.find('.field-error').text()).toBe('Add at least one field to drop.');
     });
+
+    it('turns one step\'s error headers off when decode errors are included', async () => {
+        const { wrapper, built } = mountSteps(
+            [{ type: 'renameField', from: 'a', to: 'b' }, { type: 'cel', expression: 'value' }],
+            { errorHeaders: true },
+        );
+
+        await wrapper.findAll('.step')[1]!.find('.error-header input[type="checkbox"]').setValue(false);
+
+        expect(built()).toEqual([
+            { type: 'renameField', from: 'a', to: 'b' },
+            { type: 'cel', expression: 'value', errorHeader: false },
+        ]);
+    });
+
+    it('offers no error-header toggle unless decode errors are included', () => {
+        const { wrapper } = mountSteps([{ type: 'renameField', from: 'a', to: 'b' }]);
+
+        expect(wrapper.find('.error-header').exists()).toBe(false);
+    });
+
+    it('offers no error-header toggle on a header step, which never fails', () => {
+        const { wrapper } = mountSteps([{ type: 'setHeader', header: 'content-type', value: 'application/xml' }], { errorHeaders: true });
+
+        expect(wrapper.find('.error-header').exists()).toBe(false);
+    });
 });

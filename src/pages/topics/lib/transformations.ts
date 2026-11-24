@@ -6,13 +6,17 @@ import type { JsonValue, PayloadFormatConfig, SchemaField, TransformationConfig 
 /// The gateway's `convert` step is not a step here: the editor shows the output format as its own
 /// block, and [buildTransformations] appends it as the trailing `convert` the gateway expects.
 /// Header steps may sit anywhere: they only touch headers, and never decode the value.
-export type StepForm =
-    | { id: number; type: 'dropFields'; fields: string[] }
-    | { id: number; type: 'renameField'; from: string; to: string }
-    | { id: number; type: 'defaultField'; field: string; value: string }
-    | { id: number; type: 'cel'; expression: string }
-    | { id: number; type: 'dropHeaders'; headers: string[] }
-    | { id: number; type: 'setHeader'; header: string; value: string };
+///
+/// `errorHeader` is whether a record the step fails on, delivered anyway under
+/// `onDecodeError: include`, carries the `kawa-error` headers; on by default. Header steps never
+/// fail, so theirs is only carried through.
+export type StepForm = { id: number; errorHeader: boolean } & (
+    | { type: 'dropFields'; fields: string[] }
+    | { type: 'renameField'; from: string; to: string }
+    | { type: 'defaultField'; field: string; value: string }
+    | { type: 'cel'; expression: string }
+    | { type: 'dropHeaders'; headers: string[] }
+    | { type: 'setHeader'; header: string; value: string });
 
 export type StepType = StepForm['type'];
 
@@ -37,12 +41,12 @@ const nextId = (): number => ++lastId;
 
 export function blankStep(type: StepType): StepForm {
     switch (type) {
-        case 'dropFields': return { id: nextId(), type, fields: [] };
-        case 'renameField': return { id: nextId(), type, from: '', to: '' };
-        case 'defaultField': return { id: nextId(), type, field: '', value: '' };
-        case 'cel': return { id: nextId(), type, expression: '' };
-        case 'dropHeaders': return { id: nextId(), type, headers: [] };
-        case 'setHeader': return { id: nextId(), type, header: '', value: '' };
+        case 'dropFields': return { id: nextId(), errorHeader: true, type, fields: [] };
+        case 'renameField': return { id: nextId(), errorHeader: true, type, from: '', to: '' };
+        case 'defaultField': return { id: nextId(), errorHeader: true, type, field: '', value: '' };
+        case 'cel': return { id: nextId(), errorHeader: true, type, expression: '' };
+        case 'dropHeaders': return { id: nextId(), errorHeader: true, type, headers: [] };
+        case 'setHeader': return { id: nextId(), errorHeader: true, type, header: '', value: '' };
     }
 }
 
@@ -52,16 +56,26 @@ const isFieldStep = (step: TransformationConfig): step is Exclude<Transformation
 /// The field and header steps of a stored pipeline, without its `convert`.
 export function stepsFromConfig(list: TransformationConfig[] | null | undefined): StepForm[] {
     return (list ?? []).filter(isFieldStep).map((step): StepForm => {
+        const errorHeader = step.errorHeader !== false;
         switch (step.type) {
-            case 'dropFields': return { id: nextId(), type: step.type, fields: [...step.fields] };
-            case 'renameField': return { id: nextId(), type: step.type, from: step.from, to: step.to };
-            case 'defaultField': return { id: nextId(), type: step.type, field: step.field, value: JSON.stringify(step.value ?? null) };
-            case 'cel': return { id: nextId(), type: step.type, expression: step.expression };
-            case 'dropHeaders': return { id: nextId(), type: step.type, headers: [...step.headers] };
-            case 'setHeader': return { id: nextId(), type: step.type, header: step.header, value: step.value };
+            case 'dropFields': return { id: nextId(), errorHeader, type: step.type, fields: [...step.fields] };
+            case 'renameField': return { id: nextId(), errorHeader, type: step.type, from: step.from, to: step.to };
+            case 'defaultField': return { id: nextId(), errorHeader, type: step.type, field: step.field, value: JSON.stringify(step.value ?? null) };
+            case 'cel': return { id: nextId(), errorHeader, type: step.type, expression: step.expression };
+            case 'dropHeaders': return { id: nextId(), errorHeader, type: step.type, headers: [...step.headers] };
+            case 'setHeader': return { id: nextId(), errorHeader, type: step.type, header: step.header, value: step.value };
         }
     });
 }
+
+/// Whether a stored pipeline's `convert` step leaves the `kawa-error` headers on; true without one.
+export function outputErrorHeaderFromConfig(list: TransformationConfig[] | null | undefined): boolean {
+    return (list ?? []).find((step) => step.type === 'convert')?.errorHeader !== false;
+}
+
+/// The wire form of an `errorHeader` setting: only `false` is sent, on being the default.
+export const errorHeaderSetting = (errorHeader: boolean): { errorHeader?: false } =>
+    errorHeader ? {} : { errorHeader: false };
 
 /// The output format of a stored pipeline: its `convert` step's format, or null without one.
 export function outputFromConfig(list: TransformationConfig[] | null | undefined): PayloadFormatConfig | null {
@@ -93,24 +107,31 @@ export function buildFormat(format: PayloadFormatConfig): PayloadFormatConfig {
 }
 
 /// The wire form of the pipeline: the field steps, then a `convert` step when an output format is
-/// set. Expects input that passed [validateTransformations]; a default that is not valid JSON is
-/// sent as null.
-export function buildTransformations(steps: StepForm[], output: PayloadFormatConfig | null = null): TransformationConfig[] {
+/// set, with `outputErrorHeader` as its setting. Expects input that passed
+/// [validateTransformations]; a default that is not valid JSON is sent as null.
+export function buildTransformations(
+    steps: StepForm[],
+    output: PayloadFormatConfig | null = null,
+    outputErrorHeader = true,
+): TransformationConfig[] {
     const built = steps.map((step): TransformationConfig => {
+        const setting = errorHeaderSetting(step.errorHeader);
         switch (step.type) {
-            case 'dropFields': return { type: step.type, fields: step.fields.map((field) => field.trim()) };
-            case 'renameField': return { type: step.type, from: step.from.trim(), to: step.to.trim() };
+            case 'dropFields': return { type: step.type, fields: step.fields.map((field) => field.trim()), ...setting };
+            case 'renameField': return { type: step.type, from: step.from.trim(), to: step.to.trim(), ...setting };
             case 'defaultField': {
                 const parsed = parseJsonLiteral(step.value);
-                return { type: step.type, field: step.field.trim(), value: parsed.ok ? parsed.value : null };
+                return { type: step.type, field: step.field.trim(), value: parsed.ok ? parsed.value : null, ...setting };
             }
-            case 'cel': return { type: step.type, expression: step.expression.trim() };
-            case 'dropHeaders': return { type: step.type, headers: step.headers.map((header) => header.trim()) };
+            case 'cel': return { type: step.type, expression: step.expression.trim(), ...setting };
+            case 'dropHeaders': return { type: step.type, headers: step.headers.map((header) => header.trim()), ...setting };
             // the value is sent as typed: spaces in a header value are the operator's
-            case 'setHeader': return { type: step.type, header: step.header.trim(), value: step.value };
+            case 'setHeader': return { type: step.type, header: step.header.trim(), value: step.value, ...setting };
         }
     });
-    return output ? [...built, { type: 'convert', format: buildFormat(output) }] : built;
+    return output
+        ? [...built, { type: 'convert', format: buildFormat(output), ...errorHeaderSetting(outputErrorHeader) }]
+        : built;
 }
 
 export const addStep = (steps: StepForm[], type: StepType): StepForm[] => [...steps, blankStep(type)];

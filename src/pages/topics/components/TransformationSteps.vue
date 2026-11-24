@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import CelEditor from '../../clusters/components/CelEditor.vue';
+import ErrorHeaderToggle from './ErrorHeaderToggle.vue';
 import {
     STEP_TYPES,
     addStep,
     canMove,
+    isHeaderStep,
     moveStep,
     removeStep,
     stepLabel,
@@ -20,7 +22,10 @@ const props = withDefaults(defineProps<{
     errors?: string[][];
     /// Per step, by index: the fields the step sees, for path suggestions and CEL completion.
     fields?: string[][];
-}>(), { errors: () => [], fields: () => [] });
+    /// Whether to offer each value step's error-header toggle: only the `include` decode policy
+    /// delivers the records a step fails on, and header steps never fail.
+    errorHeaders?: boolean;
+}>(), { errors: () => [], fields: () => [], errorHeaders: false });
 
 const adding = ref('');
 const add = (type: string): void => {
@@ -217,6 +222,13 @@ const listId = (step: StepForm): string => `tf-fields-${step.id}`;
                 <p v-if="step.type === 'dropHeaders' || step.type === 'setHeader'" class="hint">
                     Not on tombstones, nor on values delivered as stored after a failed transformation while the topic has a convert. Names are case-sensitive.
                 </p>
+
+                <ErrorHeaderToggle
+                    v-if="props.errorHeaders && !isHeaderStep(step)"
+                    :model-value="step.errorHeader"
+                    delivered="untransformed"
+                    @update:model-value="replace(index, { ...step, errorHeader: $event })"
+                />
 
                 <p v-for="error in props.errors[index] ?? []" :key="error" class="field-error">{{ error }}</p>
             </li>

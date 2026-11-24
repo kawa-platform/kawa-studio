@@ -9,6 +9,7 @@ import RbacBanner from '../rbac/components/RbacBanner.vue';
 import { usePatchVirtualTopic, usePhysicalTopics, useTopics, useUpsertVirtualTopic, useCreatePhysicalTopic } from './queries';
 import { useClusters } from '../clusters/queries';
 import ConfigEditor from './components/ConfigEditor.vue';
+import ErrorHeaderToggle from './components/ErrorHeaderToggle.vue';
 import FilterBuilder from './components/FilterBuilder.vue';
 import TransformationPreview from './components/TransformationPreview.vue';
 import TransformationSteps from './components/TransformationSteps.vue';
@@ -57,6 +58,10 @@ const valueFormat = ref<PayloadFormatConfig | null>(null);
 const steps = ref<StepForm[]>([]);
 /// The format transformed values are delivered in; null delivers them in the value format.
 const outputFormat = ref<PayloadFormatConfig | null>(null);
+/// Whether a value that does not encode in the output format carries the error headers.
+const outputErrorHeader = ref(true);
+/// The error-header toggles only matter when records that fail are delivered anyway.
+const includesFailures = computed(() => valueFormat.value?.onDecodeError === 'include');
 /// The topic's steps when the form opened: the edit PATCH sends steps only when they changed.
 const loadedSteps = ref<TransformationConfig[]>([]);
 /// The preview's sample record value, as typed.
@@ -75,6 +80,7 @@ watch(existing, (topic) => {
     filters.value = form.filters;
     steps.value = form.transformations;
     outputFormat.value = form.outputFormat;
+    outputErrorHeader.value = form.outputErrorHeader ?? true;
     loadedSteps.value = topic.transformations ?? [];
 }, { immediate: true });
 
@@ -145,6 +151,7 @@ const submit = async (): Promise<void> => {
             filters: filters.value,
             transformations: steps.value,
             outputFormat: outputFormat.value,
+            outputErrorHeader: outputErrorHeader.value,
         };
         if (isEdit.value) {
             await patch.mutateAsync({
@@ -304,7 +311,7 @@ const submitPhysical = async (): Promise<void> => {
 
             <section>
                 <h2>3 · Read filter</h2>
-                <FilterBuilder v-model="filters" />
+                <FilterBuilder v-model="filters" :error-headers="includesFailures" />
             </section>
 
 
@@ -315,7 +322,7 @@ const submitPhysical = async (): Promise<void> => {
                     changed. Field paths are dotted (<code>customer.name</code>); a list on the path applies the step to
                     every element. Clients reading the physical topic directly get the stored value.
                 </p>
-                <TransformationSteps v-model="steps" :errors="stepErrors" :fields="stepFields" />
+                <TransformationSteps v-model="steps" :errors="stepErrors" :fields="stepFields" :error-headers="includesFailures" />
             </section>
 
             <section>
@@ -331,6 +338,11 @@ const submitPhysical = async (): Promise<void> => {
                 <p class="hint">
                     The format clients read transformed values in. Avro needs a subject to encode with, XML a root element.
                 </p>
+                <ErrorHeaderToggle
+                    v-if="includesFailures && outputFormat"
+                    v-model="outputErrorHeader"
+                    delivered="untransformed"
+                />
             </section>
 
             <section v-if="steps.length || outputFormat">
