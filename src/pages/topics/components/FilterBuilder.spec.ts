@@ -45,12 +45,12 @@ vi.mock('@/pages/publish/components/SearchSelect.vue', () => ({ default: KindSel
 
 /// Mounts the builder behind a real parent using `v-model`, so emitted updates flow back
 /// through Vue's reactivity exactly as they do in the page.
-function mountBuilder(initial: VirtualTopicFilterForm) {
-    const state = reactive({ filters: initial });
+function mountBuilder(initial: VirtualTopicFilterForm, errorHeaders = false) {
+    const state = reactive({ filters: initial, errorHeaders });
     const wrapper = mount({
         components: { FilterBuilder },
         setup: () => state,
-        template: '<FilterBuilder v-model="filters" />',
+        template: '<FilterBuilder v-model="filters" :error-headers="errorHeaders" />',
     });
     return { wrapper, state };
 }
@@ -177,5 +177,20 @@ describe('FilterBuilder', () => {
         const { wrapper } = mountBuilder({ clause: headerClause });
 
         expect(wrapper.find('.examples').exists()).toBe(false);
+    });
+
+    it('turns a CEL filter\'s error headers off when decode errors are included', async () => {
+        const { wrapper, state } = mountBuilder({ clause: { ...celClause } }, true);
+
+        const toggle = wrapper.find('.error-header input[type="checkbox"]');
+        expect((toggle.element as HTMLInputElement).checked).toBe(true);
+        await toggle.setValue(false);
+
+        expect(state.filters.clause).toEqual({ ...celClause, errorHeader: false });
+    });
+
+    it('offers no error-header toggle unless decode errors are included, nor for a header filter', () => {
+        expect(mountBuilder({ clause: { ...celClause } }).wrapper.find('.error-header').exists()).toBe(false);
+        expect(mountBuilder({ clause: { ...headerClause } }, true).wrapper.find('.error-header').exists()).toBe(false);
     });
 });

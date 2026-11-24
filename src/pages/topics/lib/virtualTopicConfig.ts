@@ -1,5 +1,13 @@
 import type { PayloadFormatConfig, Topic, TopicFilter, TransformationConfig, VirtualTopicConfig, VirtualTopicConfigFilter, VirtualTopicPatch } from '@/api/types';
-import { buildFormat, buildTransformations, outputFromConfig, stepsFromConfig, type StepForm } from './transformations';
+import {
+    buildFormat,
+    buildTransformations,
+    errorHeaderSetting,
+    outputErrorHeaderFromConfig,
+    outputFromConfig,
+    stepsFromConfig,
+    type StepForm,
+} from './transformations';
 
 export type { VirtualTopicConfigFilter } from '@/api/types';
 
@@ -22,6 +30,9 @@ export interface VirtualTopicConfigForm {
     transformations: StepForm[];
     /// The format transformed values are delivered in, or null for the value format.
     outputFormat: PayloadFormatConfig | null;
+    /// Whether a value that does not encode in `outputFormat` (a failure of the `convert` step) is
+    /// delivered with the `kawa-error` headers. Absent means on.
+    outputErrorHeader?: boolean;
 }
 
 export interface VirtualTopicForm extends VirtualTopicConfigForm {
@@ -31,8 +42,8 @@ export interface VirtualTopicForm extends VirtualTopicConfigForm {
 export const headerClauseTypes =
     ['headerEquals', 'headerContains', 'headerStartsWith', 'headerMatches'] as const;
 
-type HeaderClause = { type: (typeof headerClauseTypes)[number]; header: string; value: string };
-type CelClause = { type: 'cel'; expression: string };
+type HeaderClause = { type: (typeof headerClauseTypes)[number]; header: string; value: string; errorHeader?: boolean };
+type CelClause = { type: 'cel'; expression: string; errorHeader?: boolean };
 
 export const isHeaderClause = (clause: VirtualTopicConfigFilter): clause is HeaderClause =>
     (headerClauseTypes as readonly string[]).includes(clause.type);
@@ -51,11 +62,13 @@ export function isFilterComplete(clause: VirtualTopicConfigFilter | null): boole
     return !!clause.expression.trim();
 }
 
+/// The wire form of a clause: trimmed, and `errorHeader` sent only when it is turned off.
 function trimmedClause(clause: VirtualTopicConfigFilter): VirtualTopicConfigFilter {
+    const setting = errorHeaderSetting(clause.errorHeader !== false);
     if (isHeaderClause(clause)) {
-        return { ...clause, header: clause.header.trim(), value: clause.value.trim() };
+        return { type: clause.type, header: clause.header.trim(), value: clause.value.trim(), ...setting };
     }
-    return { ...clause, expression: clause.expression.trim() };
+    return { type: 'cel', expression: isCelClause(clause) ? clause.expression.trim() : '', ...setting };
 }
 
 export function buildVirtualTopicConfig(form: VirtualTopicConfigForm): VirtualTopicConfig {
@@ -69,7 +82,7 @@ export function buildVirtualTopicConfig(form: VirtualTopicConfigForm): VirtualTo
     if (form.filters.clause) {
         config.filter = trimmedClause(form.filters.clause);
     }
-    const transformations = buildTransformations(form.transformations, form.outputFormat);
+    const transformations = buildTransformations(form.transformations, form.outputFormat, form.outputErrorHeader ?? true);
     if (transformations.length > 0) {
         config.transformations = transformations;
     }
@@ -95,9 +108,9 @@ export function buildVirtualTopicPatch(
         filter: form.filters.clause ? trimmedClause(form.filters.clause) : null,
         valueFormat: form.valueFormat ? buildFormat(form.valueFormat) : null,
     };
-    const steps = buildTransformations(form.transformations, form.outputFormat);
+    const steps = buildTransformations(form.transformations, form.outputFormat, form.outputErrorHeader ?? true);
     // Both sides go through the same builder, so key order cannot make equal steps look changed.
-    const stored = buildTransformations(stepsFromConfig(loaded), outputFromConfig(loaded));
+    const stored = buildTransformations(stepsFromConfig(loaded), outputFromConfig(loaded), outputErrorHeaderFromConfig(loaded));
     if (JSON.stringify(steps) !== JSON.stringify(stored)) {
         patch.transformations = steps;
     }
@@ -114,9 +127,11 @@ const headerSummaryTokens: Partial<Record<TopicFilter['kind'], { type: HeaderCla
     headerMatches: { type: 'headerMatches', token: ' matches ' },
 };
 
+/// The listed `errorHeader` is carried over, so an edit does not turn the headers back on.
 export function clauseFromSummary(filter: TopicFilter | null): VirtualTopicConfigFilter | null {
     if (!filter) return null;
-    if (filter.kind === 'cel') return { type: 'cel', expression: filter.expression };
+    const setting = errorHeaderSetting(filter.errorHeader !== false);
+    if (filter.kind === 'cel') return { type: 'cel', expression: filter.expression, ...setting };
     const spec = headerSummaryTokens[filter.kind];
     if (!spec) return null;
     const at = filter.expression.indexOf(spec.token);
@@ -125,6 +140,7 @@ export function clauseFromSummary(filter: TopicFilter | null): VirtualTopicConfi
         type: spec.type,
         header: filter.expression.slice(0, at),
         value: filter.expression.slice(at + spec.token.length),
+        ...setting,
     };
 }
 
@@ -137,5 +153,6 @@ export function virtualTopicFormFromTopic(topic: Topic): VirtualTopicForm {
         filters: { clause: clauseFromSummary(topic.filter ?? null) },
         transformations: stepsFromConfig(topic.transformations),
         outputFormat: outputFromConfig(topic.transformations),
+        outputErrorHeader: outputErrorHeaderFromConfig(topic.transformations),
     };
 }

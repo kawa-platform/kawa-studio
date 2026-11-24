@@ -7,6 +7,8 @@ export type FieldType = 'string' | 'uuid' | 'timestamp' | 'double' | 'int' | 'bo
 export interface TopicFilter {
     kind: FilterKind;
     expression: string;
+    /// `false` when the filter turns the `kawa-error` headers off; absent (the default) when on.
+    errorHeader?: boolean;
 }
 
 /// POST /topics body. Omitted partitions/replicationFactor mean the broker applies its
@@ -156,10 +158,18 @@ export type ValueFormat = PayloadFormatConfig['type'];
 /// Any JSON value: a `defaultField` step's default.
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
+/// Whether a record delivered anyway under `onDecodeError: include` carries the `kawa-error`
+/// headers that say why. Only `false` is sent and listed: absent means on, the default.
+export interface ErrorHeaderSetting {
+    errorHeader?: boolean;
+}
+
 /// One step of a virtual topic's value transformation pipeline — the gateway's sealed
 /// `Transformation`. Steps run in order on the decoded value, on fetch only. Field paths are
-/// dotted (`customer.name`); a list on a path applies the step to every element.
-export type TransformationConfig =
+/// dotted (`customer.name`); a list on a path applies the step to every element. A value that
+/// does not decode counts as a failure of the first value step, one that does not encode of the
+/// `convert` step (the last value step without one); header steps never fail.
+export type TransformationConfig = ErrorHeaderSetting & (
     | { type: 'dropFields'; fields: string[] }
     | { type: 'renameField'; from: string; to: string }
     | { type: 'defaultField'; field: string; value: JsonValue }
@@ -170,19 +180,19 @@ export type TransformationConfig =
     /// Header steps rewrite the headers of the records a topic delivers; names are case-sensitive.
     | { type: 'dropHeaders'; headers: string[] }
     /// Replaces every header named `header` by one with `value` (UTF-8).
-    | { type: 'setHeader'; header: string; value: string };
+    | { type: 'setHeader'; header: string; value: string });
 
 export type TransformationType = TransformationConfig['type'];
 
 /// The single read filter of a virtual topic: one header test or one CEL expression. The
 /// kinds mirror the gateway's sealed `VirtualTopicFilterConfig` exactly; CEL is the only
 /// filter that inspects record values (decoded per `valueFormat`).
-export type VirtualTopicConfigFilter =
+export type VirtualTopicConfigFilter = ErrorHeaderSetting & (
     | { type: 'headerEquals'; header: string; value: string }
     | { type: 'headerContains'; header: string; value: string }
     | { type: 'headerStartsWith'; header: string; value: string }
     | { type: 'headerMatches'; header: string; value: string }
-    | { type: 'cel'; expression: string };
+    | { type: 'cel'; expression: string });
 
 export interface VirtualTopicConfig {
     topic: string;

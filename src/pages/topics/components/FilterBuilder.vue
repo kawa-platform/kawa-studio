@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import CelEditor from '../../clusters/components/CelEditor.vue';
 import SearchSelect, { type SelectItem } from '../../publish/components/SearchSelect.vue';
+import ErrorHeaderToggle from './ErrorHeaderToggle.vue';
 import {
     familyOf,
     headerClauseTypes,
@@ -12,6 +13,11 @@ import {
 } from '../lib/virtualTopicConfig';
 
 const model = defineModel<VirtualTopicFilterForm>({ required: true });
+const props = withDefaults(defineProps<{
+    /// Whether to offer the error-header toggle: only a CEL filter decodes values, and only the
+    /// `include` decode policy delivers the records it fails on.
+    errorHeaders?: boolean;
+}>(), { errorHeaders: false });
 
 type HeaderType = (typeof headerClauseTypes)[number];
 
@@ -66,6 +72,13 @@ const patchCel = (expression: string): void => {
     if (!celClause.value) return;
     setClause({ ...celClause.value, expression });
 };
+
+const celErrorHeader = computed<boolean>({
+    get: () => celClause.value?.errorHeader !== false,
+    set: (errorHeader) => {
+        if (celClause.value) setClause({ ...celClause.value, errorHeader });
+    },
+});
 </script>
 
 <template>
@@ -163,6 +176,8 @@ const patchCel = (expression: string): void => {
                     </li>
                 </ul>
             </div>
+
+            <ErrorHeaderToggle v-if="props.errorHeaders" v-model="celErrorHeader" delivered="unfiltered" />
         </template>
 
         <p v-else class="empty">

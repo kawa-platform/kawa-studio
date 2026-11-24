@@ -174,6 +174,7 @@ describe('virtualTopicFormFromTopic', () => {
             filters: { clause: { type: 'headerEquals', header: 'region', value: 'eu' } },
             transformations: [],
             outputFormat: null,
+            outputErrorHeader: true,
         });
     });
 
@@ -196,6 +197,7 @@ describe('virtualTopicFormFromTopic', () => {
             filters: { clause: { type: 'cel', expression: 'value.amount > 100' } },
             transformations: [],
             outputFormat: null,
+            outputErrorHeader: true,
         });
     });
 
@@ -217,6 +219,7 @@ describe('virtualTopicFormFromTopic', () => {
             filters: { clause: null },
             transformations: [],
             outputFormat: null,
+            outputErrorHeader: true,
         });
     });
 });
@@ -333,5 +336,63 @@ describe('transformations and value formats', () => {
             .toEqual({ type: 'xml', root: 'order' });
         expect(buildVirtualTopicConfig(form({ valueFormat: { type: 'avro', subject: '' } })).valueFormat)
             .toEqual({ type: 'avro' });
+    });
+});
+
+describe('error headers', () => {
+    const listed: Topic = {
+        type: 'virtual',
+        name: 'orders',
+        partitions: 1,
+        replicationFactor: 1,
+        physicalTopic: 'orders.v1',
+        filter: { kind: 'cel', expression: 'value.paid', errorHeader: false },
+        valueFormat: { type: 'json', onDecodeError: 'include' },
+        transformations: [
+            { type: 'renameField', from: 'a', to: 'b', errorHeader: false },
+            { type: 'dropFields', fields: ['c'] },
+            { type: 'convert', format: { type: 'xml', root: 'order' }, errorHeader: false },
+        ],
+    };
+
+    it('keeps error headers turned off through an edit that does not touch them', () => {
+        const form = virtualTopicFormFromTopic(listed);
+
+        const patch = buildVirtualTopicPatch(form, 'orders', listed.transformations ?? []);
+
+        expect(patch.filter).toEqual({ type: 'cel', expression: 'value.paid', errorHeader: false });
+        expect(patch).not.toHaveProperty('transformations');
+    });
+
+    it('sends the steps when only an error header changed', () => {
+        const form = virtualTopicFormFromTopic(listed);
+        form.transformations[1] = { ...form.transformations[1]!, errorHeader: false };
+        form.outputErrorHeader = true;
+
+        const patch = buildVirtualTopicPatch(form, 'orders', listed.transformations ?? []);
+
+        expect(patch.transformations).toEqual([
+            { type: 'renameField', from: 'a', to: 'b', errorHeader: false },
+            { type: 'dropFields', fields: ['c'], errorHeader: false },
+            { type: 'convert', format: { type: 'xml', root: 'order' } },
+        ]);
+    });
+
+    it('leaves the default out of the request', () => {
+        const config = buildVirtualTopicConfig({
+            topic: 'orders.v1',
+            exposePhysicalTopic: false,
+            valueFormat: { type: 'json', onDecodeError: 'include' },
+            filters: { clause: { type: 'cel', expression: 'value.paid', errorHeader: true } },
+            transformations: stepsFromConfig([{ type: 'cel', expression: 'value' }]),
+            outputFormat: { type: 'json' },
+        });
+
+        expect(JSON.stringify(config)).not.toContain('errorHeader');
+    });
+
+    it('carries a header filter\'s error header from the listing', () => {
+        expect(clauseFromSummary({ kind: 'header', expression: 'region=eu', errorHeader: false }))
+            .toEqual({ type: 'headerEquals', header: 'region', value: 'eu', errorHeader: false });
     });
 });
