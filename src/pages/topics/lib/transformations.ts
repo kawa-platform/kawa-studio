@@ -5,7 +5,7 @@ import type { JsonValue, PayloadFormatConfig, SchemaField, TransformationConfig 
 ///
 /// The gateway's `convert` step is not a step here: the editor shows the output format as its own
 /// block, and [buildTransformations] appends it as the trailing `convert` the gateway expects.
-/// Header steps may sit anywhere: they only touch the headers of transformed records.
+/// Header steps may sit anywhere: they only touch headers, and never decode the value.
 export type StepForm =
     | { id: number; type: 'dropFields'; fields: string[] }
     | { id: number; type: 'renameField'; from: string; to: string }
@@ -25,7 +25,7 @@ export const STEP_TYPES: readonly { type: StepType; label: string; hint: string 
     { type: 'setHeader', label: 'Set header', hint: 'Set a header, e.g. content-type of the delivered format' },
 ];
 
-/// Header steps change the headers of transformed records, never the value.
+/// Header steps change the headers of the records a topic delivers, never the value.
 export const isHeaderStep = (step: StepForm): step is Extract<StepForm, { type: 'dropHeaders' | 'setHeader' }> =>
     step.type === 'dropHeaders' || step.type === 'setHeader';
 
@@ -234,14 +234,15 @@ export function validateTransformations(
     steps: StepForm[],
     output: PayloadFormatConfig | null = null,
 ): TransformationErrors {
-    const transforms = steps.length > 0 || !!output;
+    // Only value steps and an output format decode and re-encode the value; header steps alone do not.
+    const reencodes = !!output || steps.some((step) => !isHeaderStep(step));
     const valueFormatErrors: string[] = [];
-    if (transforms && !valueFormat) {
+    if (reencodes && !valueFormat) {
         valueFormatErrors.push('Transformations need a value format to decode the value with.');
     }
     if (valueFormat) {
         // The value format is the output format unless another one is picked.
-        valueFormatErrors.push(...formatErrors(valueFormat, transforms && !output));
+        valueFormatErrors.push(...formatErrors(valueFormat, reencodes && !output));
     }
     return {
         valueFormat: valueFormatErrors,

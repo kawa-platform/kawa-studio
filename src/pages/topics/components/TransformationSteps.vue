@@ -215,7 +215,7 @@ const listId = (step: StepForm): string => `tf-fields-${step.id}`;
                 </template>
 
                 <p v-if="step.type === 'dropHeaders' || step.type === 'setHeader'" class="hint">
-                    Only on records whose value was transformed; names are case-sensitive.
+                    Not on tombstones, nor on values delivered as stored after a failed transformation while the topic has a convert. Names are case-sensitive.
                 </p>
 
                 <p v-for="error in props.errors[index] ?? []" :key="error" class="field-error">{{ error }}</p>
