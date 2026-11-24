@@ -44,6 +44,54 @@ describe('stepsFromConfig / buildTransformations', () => {
         expect(buildTransformations(stepsFromConfig(config), outputFromConfig(config))).toEqual(config);
     });
 
+    it('keeps header steps that follow the convert, moving them before it', () => {
+        const config: TransformationConfig[] = [
+            { type: 'dropFields', fields: ['a'] },
+            { type: 'convert', format: { type: 'json' } },
+            { type: 'dropHeaders', headers: ['__TypeId__'] },
+            { type: 'setHeader', header: 'content-type', value: 'application/json' },
+        ];
+
+        expect(buildTransformations(stepsFromConfig(config), outputFromConfig(config))).toEqual([
+            { type: 'dropFields', fields: ['a'] },
+            { type: 'dropHeaders', headers: ['__TypeId__'] },
+            { type: 'setHeader', header: 'content-type', value: 'application/json' },
+            { type: 'convert', format: { type: 'json' } },
+        ]);
+    });
+
+    it('refuses header steps without a name', () => {
+        const errors = validateTransformations(json, steps(
+            { type: 'dropHeaders', headers: [] },
+            { type: 'dropHeaders', headers: [' '] },
+            { type: 'setHeader', header: ' ', value: 'x' },
+            { type: 'setHeader', header: 'content-type', value: '' },
+        ));
+
+        expect(errors.steps).toEqual([
+            ['Add at least one header to drop.'],
+            ['Header names must not be blank.'],
+            ['Enter a header name.'],
+            [],
+        ]);
+    });
+
+    it('previews header steps as leaving the value unchanged', () => {
+        const preview = previewSteps({ a: 1, b: 2 }, steps(
+            { type: 'setHeader', header: 'content-type', value: 'application/json' },
+            { type: 'dropFields', fields: ['b'] },
+        ));
+
+        expect(preview.value).toEqual({ a: 1 });
+        expect(preview.ran).toBe(2);
+    });
+
+    it('describes header steps', () => {
+        expect(describeStep({ type: 'dropHeaders', headers: ['__TypeId__', 'content-type'] })).toBe('drop headers __TypeId__, content-type');
+        expect(describeStep({ type: 'setHeader', header: 'content-type', value: 'application/json' }))
+            .toBe('set header content-type = application/json');
+    });
+
     it('keeps the convert out of the step list', () => {
         const config: TransformationConfig[] = [
             { type: 'cel', expression: 'value' },

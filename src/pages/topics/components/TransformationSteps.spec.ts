@@ -78,6 +78,26 @@ describe('TransformationSteps', () => {
         expect(built()).toEqual([{ type: 'dropFields', fields: ['customer.email', 'lines.internal_cost'] }]);
     });
 
+    it('adds dropped headers as chips and edits a set header', async () => {
+        const { wrapper, built } = mountSteps([
+            { type: 'dropHeaders', headers: [] },
+            { type: 'setHeader', header: '', value: '' },
+        ]);
+        const input = wrapper.find('input[aria-label="Header to drop"]');
+
+        await input.setValue('__TypeId__, content-type');
+        await input.trigger('keydown', { key: 'Enter' });
+        await wrapper.find('input[aria-label="Header name"]').setValue('content-type');
+        await wrapper.find('input[aria-label="Header value"]').setValue('application/json');
+        expect(built()).toEqual([
+            { type: 'dropHeaders', headers: ['__TypeId__', 'content-type'] },
+            { type: 'setHeader', header: 'content-type', value: 'application/json' },
+        ]);
+
+        await wrapper.find('button[aria-label="Keep __TypeId__"]').trigger('click');
+        expect(built()[0]).toEqual({ type: 'dropHeaders', headers: ['content-type'] });
+    });
+
     it('edits a rename and a default', async () => {
         const { wrapper, built } = mountSteps([
             { type: 'renameField', from: '', to: '' },

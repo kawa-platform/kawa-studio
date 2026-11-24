@@ -12,8 +12,8 @@ import {
     type StepType,
 } from '../lib/transformations';
 
-/// The ordered list of a virtual topic's field steps, one card per step. The output format is a
-/// block of its own on the page.
+/// The ordered list of a virtual topic's field and header steps, one card per step. The output
+/// format is a block of its own on the page.
 const steps = defineModel<StepForm[]>({ required: true });
 const props = withDefaults(defineProps<{
     /// Per step, by index.
@@ -32,22 +32,30 @@ const replace = (index: number, step: StepForm): void => {
     steps.value = steps.value.map((current, at) => (at === index ? step : current));
 };
 
-/// Text typed in each drop step's field input, keyed by step id, until it becomes a chip.
+/// Text typed in each drop step's input, keyed by step id, until it becomes a chip.
 const pending = ref<Record<number, string>>({});
+
+/// A step holding a list of names as chips: the fields or headers it drops.
+type DropStep = Extract<StepForm, { type: 'dropFields' | 'dropHeaders' }>;
+const isDropStep = (step: StepForm | undefined): step is DropStep =>
+    step?.type === 'dropFields' || step?.type === 'dropHeaders';
+const dropped = (step: DropStep): string[] => (step.type === 'dropFields' ? step.fields : step.headers);
+const withDropped = (step: DropStep, names: string[]): StepForm =>
+    step.type === 'dropFields' ? { ...step, fields: names } : { ...step, headers: names };
 
 const addDropField = (index: number): void => {
     const step = steps.value[index];
-    if (step?.type !== 'dropFields') return;
-    const typed = (pending.value[step.id] ?? '').split(',').map((field) => field.trim()).filter(Boolean);
+    if (!isDropStep(step)) return;
+    const typed = (pending.value[step.id] ?? '').split(',').map((name) => name.trim()).filter(Boolean);
     pending.value = { ...pending.value, [step.id]: '' };
-    const fresh = typed.filter((field) => !step.fields.includes(field));
-    if (fresh.length) replace(index, { ...step, fields: [...step.fields, ...fresh] });
+    const fresh = typed.filter((name) => !dropped(step).includes(name));
+    if (fresh.length) replace(index, withDropped(step, [...dropped(step), ...fresh]));
 };
 
-const removeDropField = (index: number, field: string): void => {
+const removeDropField = (index: number, name: string): void => {
     const step = steps.value[index];
-    if (step?.type !== 'dropFields') return;
-    replace(index, { ...step, fields: step.fields.filter((current) => current !== field) });
+    if (!isDropStep(step)) return;
+    replace(index, withDropped(step, dropped(step).filter((current) => current !== name)));
 };
 
 const onDropKey = (event: KeyboardEvent, index: number): void => {
@@ -57,7 +65,7 @@ const onDropKey = (event: KeyboardEvent, index: number): void => {
     }
 };
 
-const patch = (index: number, change: Partial<Record<'from' | 'to' | 'field' | 'value' | 'expression', string>>): void => {
+const patch = (index: number, change: Partial<Record<'from' | 'to' | 'field' | 'value' | 'expression' | 'header', string>>): void => {
     replace(index, { ...steps.value[index]!, ...change } as StepForm);
 };
 
@@ -108,21 +116,23 @@ const listId = (step: StepForm): string => `tf-fields-${step.id}`;
                     <option v-for="field in props.fields[index] ?? []" :key="field" :value="field" />
                 </datalist>
 
-                <template v-if="step.type === 'dropFields'">
-                    <ul v-if="step.fields.length" class="chips">
-                        <li v-for="field in step.fields" :key="field" class="chip mono">
-                            {{ field }}
-                            <button type="button" class="chip-x" :aria-label="`Keep ${field}`" @click="removeDropField(index, field)">
+                <template v-if="isDropStep(step)">
+                    <ul v-if="dropped(step).length" class="chips">
+                        <li v-for="name in dropped(step)" :key="name" class="chip mono">
+                            {{ name }}
+                            <button type="button" class="chip-x" :aria-label="`Keep ${name}`" @click="removeDropField(index, name)">
                                 <i class="ph-duotone ph-x" />
                             </button>
                         </li>
                     </ul>
                     <input
                         class="input mono"
-                        :list="listId(step)"
+                        :list="step.type === 'dropFields' ? listId(step) : undefined"
                         :value="pending[step.id] ?? ''"
-                        placeholder="Field path, e.g. customer.email — Enter to add"
-                        aria-label="Field to drop"
+                        :placeholder="step.type === 'dropFields'
+                            ? 'Field path, e.g. customer.email — Enter to add'
+                            : 'Header name, e.g. __TypeId__ — Enter to add'"
+                        :aria-label="step.type === 'dropFields' ? 'Field to drop' : 'Header to drop'"
                         autocomplete="off"
                         @input="pending = { ...pending, [step.id]: ($event.target as HTMLInputElement).value }"
                         @keydown="onDropKey($event, index)"
@@ -172,7 +182,29 @@ const listId = (step: StepForm): string => `tf-fields-${step.id}`;
                     >
                 </div>
 
-                <template v-else>
+                <template v-else-if="step.type === 'setHeader'">
+                    <div class="pair">
+                        <input
+                            class="input mono"
+                            :value="step.header"
+                            placeholder="Header, e.g. content-type"
+                            aria-label="Header name"
+                            autocomplete="off"
+                            @input="patch(index, { header: ($event.target as HTMLInputElement).value })"
+                        >
+                        <span class="eq">=</span>
+                        <input
+                            class="input mono"
+                            :value="step.value"
+                            placeholder="Value, e.g. application/json"
+                            aria-label="Header value"
+                            autocomplete="off"
+                            @input="patch(index, { value: ($event.target as HTMLInputElement).value })"
+                        >
+                    </div>
+                </template>
+
+                <template v-else-if="step.type === 'cel'">
                     <CelEditor
                         :model-value="step.expression"
                         :fields="props.fields[index]"
@@ -181,6 +213,10 @@ const listId = (step: StepForm): string => `tf-fields-${step.id}`;
                     />
                     <p class="hint">The result replaces the whole value. Bindings: <code>value</code>, <code>key</code>, <code>headers</code>, <code>timestamp</code>.</p>
                 </template>
+
+                <p v-if="step.type === 'dropHeaders' || step.type === 'setHeader'" class="hint">
+                    Only on records whose value was transformed; names are case-sensitive.
+                </p>
 
                 <p v-for="error in props.errors[index] ?? []" :key="error" class="field-error">{{ error }}</p>
             </li>
