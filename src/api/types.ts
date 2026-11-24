@@ -165,8 +165,12 @@ export type TransformationConfig =
     | { type: 'defaultField'; field: string; value: JsonValue }
     /// The expression's result replaces the whole value.
     | { type: 'cel'; expression: string }
-    /// Only as the last step: the format the transformed value is encoded in.
-    | { type: 'convert'; format: PayloadFormatConfig };
+    /// At most one, after every value step: the format the transformed value is encoded in.
+    | { type: 'convert'; format: PayloadFormatConfig }
+    /// Header steps rewrite the headers of a record whose value was transformed; names are case-sensitive.
+    | { type: 'dropHeaders'; headers: string[] }
+    /// Replaces every header named `header` by one with `value` (UTF-8).
+    | { type: 'setHeader'; header: string; value: string };
 
 export type TransformationType = TransformationConfig['type'];
 

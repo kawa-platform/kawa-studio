@@ -1,15 +1,18 @@
 import type { JsonValue, PayloadFormatConfig, SchemaField, TransformationConfig } from '@/api/types';
 
-/// A field step as the editor holds it. `id` keys the step card across reorders; a default's value
+/// A step as the editor holds it: a field step or a header step. `id` keys the step card across reorders; a default's value
 /// is the JSON text the operator typed, parsed only when saving.
 ///
 /// The gateway's `convert` step is not a step here: the editor shows the output format as its own
 /// block, and [buildTransformations] appends it as the trailing `convert` the gateway expects.
+/// Header steps may sit anywhere: they only touch the headers of transformed records.
 export type StepForm =
     | { id: number; type: 'dropFields'; fields: string[] }
     | { id: number; type: 'renameField'; from: string; to: string }
     | { id: number; type: 'defaultField'; field: string; value: string }
-    | { id: number; type: 'cel'; expression: string };
+    | { id: number; type: 'cel'; expression: string }
+    | { id: number; type: 'dropHeaders'; headers: string[] }
+    | { id: number; type: 'setHeader'; header: string; value: string };
 
 export type StepType = StepForm['type'];
 
@@ -18,7 +21,13 @@ export const STEP_TYPES: readonly { type: StepType; label: string; hint: string 
     { type: 'renameField', label: 'Rename field', hint: 'Move a field, keeping its value' },
     { type: 'defaultField', label: 'Default field', hint: 'Set a field when it is absent or null' },
     { type: 'cel', label: 'CEL expression', hint: 'Replace the whole value with the result of an expression' },
+    { type: 'dropHeaders', label: 'Drop headers', hint: 'Remove headers that describe the stored format' },
+    { type: 'setHeader', label: 'Set header', hint: 'Set a header, e.g. content-type of the delivered format' },
 ];
+
+/// Header steps change the headers of transformed records, never the value.
+export const isHeaderStep = (step: StepForm): step is Extract<StepForm, { type: 'dropHeaders' | 'setHeader' }> =>
+    step.type === 'dropHeaders' || step.type === 'setHeader';
 
 export const stepLabel = (type: StepType): string =>
     STEP_TYPES.find((entry) => entry.type === type)?.label ?? type;
@@ -32,13 +41,15 @@ export function blankStep(type: StepType): StepForm {
         case 'renameField': return { id: nextId(), type, from: '', to: '' };
         case 'defaultField': return { id: nextId(), type, field: '', value: '' };
         case 'cel': return { id: nextId(), type, expression: '' };
+        case 'dropHeaders': return { id: nextId(), type, headers: [] };
+        case 'setHeader': return { id: nextId(), type, header: '', value: '' };
     }
 }
 
 const isFieldStep = (step: TransformationConfig): step is Exclude<TransformationConfig, { type: 'convert' }> =>
     step.type !== 'convert';
 
-/// The field steps of a stored pipeline, without its trailing `convert`.
+/// The field and header steps of a stored pipeline, without its `convert`.
 export function stepsFromConfig(list: TransformationConfig[] | null | undefined): StepForm[] {
     return (list ?? []).filter(isFieldStep).map((step): StepForm => {
         switch (step.type) {
@@ -46,6 +57,8 @@ export function stepsFromConfig(list: TransformationConfig[] | null | undefined)
             case 'renameField': return { id: nextId(), type: step.type, from: step.from, to: step.to };
             case 'defaultField': return { id: nextId(), type: step.type, field: step.field, value: JSON.stringify(step.value ?? null) };
             case 'cel': return { id: nextId(), type: step.type, expression: step.expression };
+            case 'dropHeaders': return { id: nextId(), type: step.type, headers: [...step.headers] };
+            case 'setHeader': return { id: nextId(), type: step.type, header: step.header, value: step.value };
         }
     });
 }
@@ -92,6 +105,9 @@ export function buildTransformations(steps: StepForm[], output: PayloadFormatCon
                 return { type: step.type, field: step.field.trim(), value: parsed.ok ? parsed.value : null };
             }
             case 'cel': return { type: step.type, expression: step.expression.trim() };
+            case 'dropHeaders': return { type: step.type, headers: step.headers.map((header) => header.trim()) };
+            // the value is sent as typed: spaces in a header value are the operator's
+            case 'setHeader': return { type: step.type, header: step.header.trim(), value: step.value };
         }
     });
     return output ? [...built, { type: 'convert', format: buildFormat(output) }] : built;
@@ -200,6 +216,13 @@ function stepErrors(step: StepForm): string[] {
         case 'cel':
             if (!step.expression.trim()) errors.push('Enter a CEL expression.');
             break;
+        case 'dropHeaders':
+            if (step.headers.length === 0) errors.push('Add at least one header to drop.');
+            if (step.headers.some((header) => !header.trim())) errors.push('Header names must not be blank.');
+            break;
+        case 'setHeader':
+            if (!step.header.trim()) errors.push('Enter a header name.');
+            break;
     }
     return errors;
 }
@@ -261,6 +284,8 @@ export function describeStep(step: TransformationConfig): string {
         case 'defaultField': return `default ${step.field} = ${JSON.stringify(step.value ?? null)}`;
         case 'cel': return `cel ${step.expression}`;
         case 'convert': return `convert to ${describeFormat(step.format)}`;
+        case 'dropHeaders': return `drop headers ${step.headers.join(', ')}`;
+        case 'setHeader': return `set header ${step.header} = ${step.value}`;
     }
 }
 
@@ -452,7 +477,8 @@ export function previewSteps(sample: JsonValue, steps: StepForm[], upto = steps.
             stoppedAt = index;
             break;
         }
-        if (stepErrors(step).length > 0) {
+        if (isHeaderStep(step) || stepErrors(step).length > 0) {
+            // header steps leave the value as it is; a step with errors is skipped
             ran = index + 1;
             continue;
         }
@@ -466,7 +492,7 @@ export function previewSteps(sample: JsonValue, steps: StepForm[], upto = steps.
                 value = applied.value;
                 if (applied.matched) renames.push({ from: step.from.trim(), to: step.to.trim() });
                 else notes.push({ step: index, message: `“${step.from.trim()}” is not in the sample, so nothing is renamed.` });
-            } else {
+            } else if (step.type === 'defaultField') {
                 const parsed = parseJsonLiteral(step.value);
                 const applied = applyDefault(value, splitPath(step.field), parsed.ok ? parsed.value : null);
                 value = applied.value;
