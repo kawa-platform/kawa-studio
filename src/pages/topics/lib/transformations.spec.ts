@@ -159,6 +159,15 @@ describe('validation', () => {
             .toEqual(['Transformations need a value format to decode the value with.']);
     });
 
+    it('accepts header steps without a value format, as they decode nothing', () => {
+        expect(hasErrors(errorsOf(null, { type: 'dropHeaders', headers: ['__TypeId__'] }))).toBe(false);
+        expect(hasErrors(errorsOf(null, { type: 'setHeader', header: 'content-type', value: 'application/json' }))).toBe(false);
+    });
+
+    it('does not ask for an Avro subject when header steps alone keep an Avro value format', () => {
+        expect(hasErrors(errorsOf({ type: 'avro' }, { type: 'dropHeaders', headers: ['__TypeId__'] }))).toBe(false);
+    });
+
     it('accepts a complete pipeline', () => {
         const errors = errorsOf(json,
             { type: 'dropFields', fields: ['a.b'] },

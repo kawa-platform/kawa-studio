@@ -167,7 +167,7 @@ export type TransformationConfig =
     | { type: 'cel'; expression: string }
     /// At most one, after every value step: the format the transformed value is encoded in.
     | { type: 'convert'; format: PayloadFormatConfig }
-    /// Header steps rewrite the headers of a record whose value was transformed; names are case-sensitive.
+    /// Header steps rewrite the headers of the records a topic delivers; names are case-sensitive.
     | { type: 'dropHeaders'; headers: string[] }
     /// Replaces every header named `header` by one with `value` (UTF-8).
     | { type: 'setHeader'; header: string; value: string };
