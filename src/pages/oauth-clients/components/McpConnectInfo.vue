@@ -22,11 +22,14 @@ const setup = (tool: string, clientId?: string): Snippet | null => {
                 ? { id: tool, label: 'Claude (web, desktop): custom connector', text: `URL: ${MCP_URL}\nOAuth client ID: ${clientId}` }
                 : null;
         case 'vscode':
+        case 'copilot': {
+            const name = tool === 'vscode' ? 'VS Code' : 'GitHub Copilot';
             return {
                 id: tool,
-                label: `VS Code, GitHub Copilot (.vscode/mcp.json)${clientId ? `; asks for client ID ${clientId} on sign-in` : ''}`,
+                label: `${name} (.vscode/mcp.json)${clientId ? `; asks for client ID ${clientId} on sign-in` : ''}`,
                 text: JSON.stringify({ servers: { kawa: { type: 'http', url: MCP_URL } } }, null, 2),
             };
+        }
         default:
             return null;
     }

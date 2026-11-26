@@ -30,4 +30,11 @@ export const OAUTH_CLIENT_TEMPLATES: readonly OAuthClientTemplate[] = [
         redirectUris: ['http://127.0.0.1:33418', 'https://vscode.dev/redirect'],
         audience: 'mcp',
     },
+    {
+        id: 'copilot',
+        name: 'GitHub Copilot',
+        // Copilot listens on a random loopback port per sign-in, so any port is allowed.
+        redirectUris: ['http://127.0.0.1:*/'],
+        audience: 'mcp',
+    },
 ];

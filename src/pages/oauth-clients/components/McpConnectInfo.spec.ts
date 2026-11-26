@@ -32,20 +32,22 @@ describe('McpConnectInfo', () => {
         expect(text).not.toContain('custom connector');
     });
 
-    it('lists Claude and VS Code when they are registered', () => {
+    it('lists Claude, VS Code and GitHub Copilot when they are registered', () => {
         // when
         const text = mount(McpConnectInfo, {
             props: {
                 clients: [
                     client('claude', ['https://claude.ai/api/mcp/auth_callback']),
                     client('vscode', ['http://127.0.0.1:33418']),
+                    client('copilot', ['http://127.0.0.1:*/']),
                 ],
             },
         }).text();
 
         // then
         expect(text).toContain('OAuth client ID: claude');
-        expect(text).toContain('asks for client ID vscode');
+        expect(text).toContain('VS Code (.vscode/mcp.json); asks for client ID vscode');
+        expect(text).toContain('GitHub Copilot (.vscode/mcp.json); asks for client ID copilot');
         expect(text).not.toContain('Claude Code');
     });
 
