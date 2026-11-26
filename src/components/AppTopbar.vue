@@ -59,6 +59,17 @@ const signOut = (): void => {
     z-index: 20;
 }
 
+.topbar::before {
+    content: '';
+    position: absolute;
+    top: -13px;
+    left: -21px;
+    right: -21px;
+    height: 12px;
+    background: var(--color-bg);
+    pointer-events: none;
+}
+
 .crumbs { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); margin-right: auto; min-width: 0; }
 .crumb-root { display: inline-flex; align-items: center; gap: 7px; }
 .crumb-root i { font-size: 17px; color: var(--brand-text); }

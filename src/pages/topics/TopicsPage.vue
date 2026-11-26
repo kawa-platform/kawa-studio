@@ -185,7 +185,7 @@ const confirmDelete = async (): Promise<void> => {
 .head { display: flex; align-items: flex-end; gap: 24px; margin-bottom: 18px; }
 .head .btn { flex: none; margin-left: auto; }
 .stat-strip { margin-bottom: 20px; }
-.controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
+.controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
 .seg-list { display: flex; }
 .search { position: relative; width: 280px; }
 .search .input { padding-left: 31px; font-size: 13px; width: 100%; box-sizing: border-box; }
