@@ -1,3 +1,5 @@
+import { validateEmail, validatePassword } from '@/lib/adminCredentials';
+
 /// Where the login page goes when there is no (safe) redirect target.
 export const DEFAULT_LANDING = '/topics';
 
@@ -7,6 +9,24 @@ export function validateLogin(input: { username: string; password: string }): Re
     if (!input.username.trim()) errors.username = 'Enter your username.';
     if (!input.password) errors.password = 'Enter your password.';
     return errors;
+}
+
+/// The first-run setup form: the one-time setup token and the first admin user's credentials.
+export interface SetupForm {
+    token: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+}
+
+/// Field errors for the setup form, keyed by field; the email and password follow the admin user
+/// editor's checks.
+export function validateSetup(form: SetupForm): Record<string, string> {
+    const errors: Record<string, string> = {};
+    if (!form.token.trim()) errors.token = 'Enter the setup token.';
+    const emailError = validateEmail(form.email);
+    if (emailError) errors.email = emailError;
+    return { ...errors, ...validatePassword(form.password, form.confirmPassword) };
 }
 
 /// The in-app path to return to after logging in. Only same-app paths are followed (`/topics`,

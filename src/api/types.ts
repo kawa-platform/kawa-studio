@@ -449,6 +449,22 @@ export interface UpdateAdminUserRequest {
     enabled?: boolean;
 }
 
+// ── First-run setup (admin server, /admin/setup) ——————————————————————
+// Public routes: on a gateway with no admin user yet, the first one is created with a one-time
+// setup token from the gateway log (or `KAWA_SETUP_TOKEN`).
+
+/// GET /admin/setup: whether the gateway still waits for its first admin user.
+export interface SetupStatusView {
+    required: boolean;
+}
+
+/// POST /admin/setup body; answers `201` with the created [AdminUserView].
+export interface SetupRequest {
+    token: string;
+    email: string;
+    password: string;
+}
+
 // ── Admin Modules ———————————————————————
 
 /// GET /modules: a gateway module, whether it is switched on and whether this gateway can run it.

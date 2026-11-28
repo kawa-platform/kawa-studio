@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { changesOf, errorsOf, validateCreate, validateEmail } from './lib/adminUsers';
+import { errorsOf, validateEmail } from '@/lib/adminCredentials';
+import { changesOf, validateCreate } from './lib/adminUsers';
 import { useAdminUsers, useCreateAdminUser, useUpdateAdminUser } from './queries';
 
 const route = useRoute();

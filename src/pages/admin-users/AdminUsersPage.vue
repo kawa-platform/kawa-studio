@@ -7,7 +7,8 @@ import type { AdminUserView } from '@/api/types';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import DataTable from '@/components/DataTable.vue';
 import { useAuthStore } from '@/stores/auth';
-import { errorsOf, isCurrentUser, labelOf, messageOf, validatePassword } from './lib/adminUsers';
+import { errorsOf, messageOf, validatePassword } from '@/lib/adminCredentials';
+import { isCurrentUser, labelOf } from './lib/adminUsers';
 import { useAdminUsers, useDeleteAdminUser, useUpdateAdminUser } from './queries';
 
 const auth = useAuthStore();
