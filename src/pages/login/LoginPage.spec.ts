@@ -16,7 +16,11 @@ const mocks = vi.hoisted(() => ({
     expiresSoon: vi.fn(),
     auth: { isAuthenticated: false, username: null as string | null, accessToken: null as string | null },
     query: {} as Record<string, string>,
+    fetchSetupRequired: vi.fn(),
+    submitSetup: vi.fn(),
 }));
+
+vi.mock('@/api/setup', () => ({ fetchSetupRequired: mocks.fetchSetupRequired, submitSetup: mocks.submitSetup }));
 
 vi.mock('@/api/oauth', () => ({ CLIENT_ID: 'kawa-studio', submitLogin: mocks.submitLogin, continueLogin: mocks.continueLogin, fetchLoginClient: mocks.fetchLoginClient }));
 
@@ -36,6 +40,7 @@ vi.mock('vue-router', () => ({ useRoute: () => ({ query: mocks.query }), useRout
 
 async function signIn(username: string, password: string) {
     const wrapper = mount(LoginPage);
+    await flushPromises();
     await wrapper.get('#username').setValue(username);
     await wrapper.get('#password').setValue(password);
     await wrapper.get('form').trigger('submit');
@@ -59,6 +64,8 @@ describe('LoginPage', () => {
         mocks.auth.username = null;
         mocks.auth.accessToken = null;
         mocks.query = { login_challenge: 'the-challenge' };
+        mocks.fetchSetupRequired.mockReset().mockResolvedValue(false);
+        mocks.submitSetup.mockReset();
         vi.stubGlobal('location', { assign: mocks.assign });
     });
 
@@ -143,6 +150,7 @@ describe('LoginPage', () => {
 
         // then
         expect(mocks.beginLogin).toHaveBeenCalledWith('/clients');
+        expect(mocks.fetchSetupRequired).not.toHaveBeenCalled();
     });
 
     it('does not submit an incomplete form', async () => {
@@ -385,6 +393,167 @@ describe('LoginPage', () => {
             // then
             expect(mocks.continueLogin).toHaveBeenLastCalledWith('fresh-challenge', 'access-token');
             expect(mocks.assign).toHaveBeenCalledWith('http://localhost:7000/callback?code=2&state=s');
+        });
+    });
+    describe('first-run setup', () => {
+        const created = { id: 'u1', email: 'ops@example.com', displayName: null, enabled: true, createdAt: '2026-11-28T00:00:00Z' };
+
+        async function openSetup() {
+            mocks.fetchSetupRequired.mockResolvedValue(true);
+            const wrapper = mount(LoginPage);
+            await flushPromises();
+            return wrapper;
+        }
+
+        async function fillSetup(wrapper: Awaited<ReturnType<typeof openSetup>>, token = ' tok-123 ', password = 's3cret-pass') {
+            await wrapper.get('#setup-token').setValue(token);
+            await wrapper.get('#setup-email').setValue(' ops@example.com ');
+            await wrapper.get('#setup-password').setValue(password);
+            await wrapper.get('#setup-confirm-password').setValue(password);
+            await wrapper.get('form').trigger('submit');
+            await flushPromises();
+        }
+
+        function secrets(wrapper: Awaited<ReturnType<typeof openSetup>>): string[] {
+            return ['#setup-token', '#setup-password', '#setup-confirm-password']
+                .map((id) => (wrapper.get(id).element as HTMLInputElement).value);
+        }
+
+        it('shows the setup form instead of the sign-in while setup is required', async () => {
+            // when
+            const wrapper = await openSetup();
+
+            // then
+            expect(wrapper.get('h2').text()).toBe('Create the first admin');
+            expect(wrapper.find('#username').exists()).toBe(false);
+            expect(wrapper.get('label[for="setup-token"]').text()).toBe('Setup token');
+            expect(wrapper.get('#setup-token').attributes('autocomplete')).toBe('one-time-code');
+            expect(wrapper.get('#setup-password').attributes('autocomplete')).toBe('new-password');
+            expect(wrapper.get('#setup-confirm-password').attributes('autocomplete')).toBe('new-password');
+            expect(wrapper.get('#setup-token-help').text()).toContain('gateway log at startup');
+            expect(wrapper.get('#setup-token-help').text()).toContain('KAWA_SETUP_TOKEN');
+        });
+
+        it('shows the sign-in when setup is not required', async () => {
+            // when
+            const wrapper = mount(LoginPage);
+            await flushPromises();
+
+            // then
+            expect(mocks.fetchSetupRequired).toHaveBeenCalledTimes(1);
+            expect(wrapper.find('#setup-token').exists()).toBe(false);
+            expect(wrapper.find('#username').exists()).toBe(true);
+            expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+        });
+
+        it('falls back to the sign-in with an error when the gateway cannot be asked', async () => {
+            // given
+            mocks.fetchSetupRequired.mockRejectedValue(new ApiError('network', 'Could not reach the gateway.'));
+
+            // when
+            const wrapper = mount(LoginPage);
+            await flushPromises();
+
+            // then
+            expect(wrapper.find('#setup-token').exists()).toBe(false);
+            expect(wrapper.find('#username').exists()).toBe(true);
+            expect(wrapper.get('[role="alert"]').text())
+                .toBe('Could not check whether the gateway needs setup. Could not reach the gateway.');
+        });
+
+        it('creates the admin user, then continues the same sign-in with the email filled in', async () => {
+            // given
+            mocks.submitSetup.mockResolvedValue(created);
+            const wrapper = await openSetup();
+
+            // when
+            await fillSetup(wrapper);
+
+            // then
+            expect(mocks.submitSetup).toHaveBeenCalledWith({ token: 'tok-123', email: 'ops@example.com', password: 's3cret-pass' });
+            expect(wrapper.find('#setup-token').exists()).toBe(false);
+            expect(wrapper.get('[role="status"]').text()).toContain('Admin user created');
+            expect((wrapper.get('#username').element as HTMLInputElement).value).toBe('ops@example.com');
+            expect((wrapper.get('#password').element as HTMLInputElement).value).toBe('');
+
+            // when
+            await wrapper.get('#password').setValue('s3cret-pass');
+            await wrapper.get('form').trigger('submit');
+            await flushPromises();
+
+            // then
+            expect(mocks.submitLogin).toHaveBeenCalledWith('the-challenge', 'ops@example.com', 's3cret-pass');
+        });
+
+        it('marks the token field when the setup token is wrong, and keeps no secret', async () => {
+            // given
+            mocks.submitSetup.mockRejectedValue(new ApiError('401', 'That setup token is not valid.', 'token'));
+            const wrapper = await openSetup();
+
+            // when
+            await fillSetup(wrapper, 'wrong');
+
+            // then
+            expect(wrapper.get('#setup-token-help').text()).toBe('That setup token is not valid.');
+            expect(wrapper.get('#setup-token').attributes('aria-invalid')).toBe('true');
+            expect(secrets(wrapper)).toEqual(['', '', '']);
+            expect((wrapper.get('#setup-email').element as HTMLInputElement).value).toBe('ops@example.com');
+            expect(wrapper.find('#username').exists()).toBe(false);
+        });
+
+        it('shows the gateway\'s validation message', async () => {
+            // given
+            mocks.submitSetup.mockRejectedValue(new ApiError('400', 'password must be at least 12 characters'));
+            const wrapper = await openSetup();
+
+            // when
+            await fillSetup(wrapper, 'tok', 'short');
+
+            // then
+            expect(wrapper.text()).toContain('password must be at least 12 characters');
+            expect(secrets(wrapper)).toEqual(['', '', '']);
+        });
+
+        it('shows a validation message that names no field on the form', async () => {
+            // given
+            mocks.submitSetup.mockRejectedValue(new ApiError('400', 'request body is malformed'));
+            const wrapper = await openSetup();
+
+            // when
+            await fillSetup(wrapper);
+
+            // then
+            expect(wrapper.get('[role="alert"]').text()).toBe('request body is malformed');
+        });
+
+        it('switches to the sign-in with a notice when setup is already complete', async () => {
+            // given
+            mocks.submitSetup.mockRejectedValue(new ApiError('409', 'An admin user already exists. Sign in with that account.'));
+            const wrapper = await openSetup();
+
+            // when
+            await fillSetup(wrapper);
+
+            // then
+            expect(wrapper.find('#setup-token').exists()).toBe(false);
+            expect(wrapper.find('#username').exists()).toBe(true);
+            expect(wrapper.get('[role="status"]').text()).toContain('Setup is already complete');
+        });
+
+        it('does not send an incomplete form', async () => {
+            // given
+            const wrapper = await openSetup();
+
+            // when
+            await wrapper.get('#setup-password').setValue('a');
+            await wrapper.get('#setup-confirm-password').setValue('b');
+            await wrapper.get('form').trigger('submit');
+            await flushPromises();
+
+            // then
+            expect(mocks.submitSetup).not.toHaveBeenCalled();
+            expect(wrapper.findAll('.field-error').map((error) => error.text()))
+                .toEqual(['Enter the setup token.', 'Email is required.', 'Passwords do not match.']);
         });
     });
 });

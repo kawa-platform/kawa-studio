@@ -2,7 +2,7 @@ import { ApiError } from './error';
 import type { LoginClientView, TokenErrorBody, TokenResponse } from './types';
 
 /// The admin server, which is the OAuth authorization server when `admin.auth.type` is `oauth`.
-const ADMIN_BASE = (import.meta.env.VITE_ADMIN_API_BASE?.trim() || 'http://localhost:8080').replace(/\/$/, '');
+export const ADMIN_BASE = (import.meta.env.VITE_ADMIN_API_BASE?.trim() || 'http://localhost:8080').replace(/\/$/, '');
 
 /// The gateway's MCP endpoint, which MCP tools are pointed at.
 export const MCP_URL = ADMIN_BASE + '/mcp';

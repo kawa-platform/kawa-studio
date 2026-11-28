@@ -1,17 +1,24 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ApiError } from '@/api/error';
 import { CLIENT_ID, continueLogin, fetchLoginClient, submitLogin } from '@/api/oauth';
+import { fetchSetupRequired, submitSetup } from '@/api/setup';
 import type { LoginClientView } from '@/api/types';
+import { errorsOf } from '@/lib/adminCredentials';
 import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
 import McpConsentPanel from './McpConsentPanel.vue';
-import { safeRedirect, validateLogin } from './lib/login';
+import { type SetupForm, safeRedirect, validateLogin, validateSetup } from './lib/login';
 
 /// kawa studio's login page, used as the login UI of the gateway's (headless) authorization server:
 /// `/oauth/authorize` redirects here with a `login_challenge`. Without one, the page starts the login
 /// flow itself, so `/login` can be opened directly.
+///
+/// On a gateway with no admin user yet, nobody can sign in, so the page asks `GET /admin/setup` first and,
+/// while setup is required, shows the one-time "create the first admin" form instead. The check runs once
+/// the page holds a login challenge (opened directly, it first starts the flow and comes back with one), so
+/// once the admin user is created the sign-in continues the same authorization request.
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
@@ -77,8 +84,60 @@ const withRenewedChallenge = async (attempt: (challenge: string) => Promise<stri
 const otherAccount = ref(false);
 const canContinue = computed(() => consent.value !== null && auth.isAuthenticated && !otherAccount.value);
 
+/// Whether the gateway waits for its first admin user; `null` while that is being asked. When it cannot
+/// be told, the sign-in is shown with the error rather than blocking the page.
+const setupRequired = ref<boolean | null>(null);
+/// A short note above the sign-in after setup, e.g. that the admin user was created.
+const notice = ref<string | null>(null);
+const emptySetup = (): SetupForm => ({ token: '', email: '', password: '', confirmPassword: '' });
+const setup = ref<SetupForm>(emptySetup());
+
+const checkSetup = async (): Promise<void> => {
+    try {
+        setupRequired.value = await fetchSetupRequired();
+    } catch (cause) {
+        setupRequired.value = false;
+        serverError.value = 'Could not check whether the gateway needs setup. '
+            + (cause instanceof ApiError ? cause.message : '');
+    }
+};
+
+/// Leaves setup for the sign-in, with `email` filled in when there is one.
+const toSignIn = async (message: string, email?: string): Promise<void> => {
+    setupRequired.value = false;
+    errors.value = {};
+    notice.value = message;
+    if (email) username.value = email;
+    await nextTick();
+    document.getElementById(email ? 'password' : 'username')?.focus();
+};
+
+/// Creates the first admin user. The token and the passwords are sent once: they are cleared after every
+/// attempt, successful or not; only the email stays.
+const submitSetupForm = async (): Promise<void> => {
+    const form = setup.value;
+    const found = validateSetup(form);
+    errors.value = found;
+    if (Object.keys(found).length > 0) return;
+    pending.value = true;
+    try {
+        const created = await submitSetup({ token: form.token.trim(), email: form.email.trim(), password: form.password });
+        await toSignIn('Admin user created. Sign in with it to continue.', created.email);
+    } catch (cause) {
+        if (cause instanceof ApiError && cause.code === '409') {
+            await toSignIn('Setup is already complete. Sign in with an existing admin account.');
+        } else {
+            errors.value = errorsOf(cause);
+        }
+    } finally {
+        setup.value = { ...emptySetup(), email: form.email };
+        pending.value = false;
+    }
+};
+
 onMounted(() => {
     if (!loginChallenge.value) startOver();
+    else void checkSetup();
 });
 
 /// Submits the form; the gateway answers with where to send the browser next: the callback, with an
@@ -163,6 +222,48 @@ const continueAsSignedIn = async (): Promise<void> => {
 
         <main class="panel">
             <p v-if="!loginChallenge" class="card redirecting">Redirecting to sign in…</p>
+            <p v-else-if="setupRequired === null" class="card redirecting">Connecting to the gateway…</p>
+            <form v-else-if="setupRequired" class="form card setup" novalidate aria-labelledby="setup-title" @submit.prevent="submitSetupForm">
+                <div class="card-head">
+                    <h2 id="setup-title">Create the first admin</h2>
+                    <p>This gateway has no admin user yet. Create one to sign in; setup closes once it exists.</p>
+                </div>
+
+                <div class="field">
+                    <label for="setup-token">Setup token</label>
+                    <input id="setup-token" v-model="setup.token" class="input mono" type="password" autocomplete="one-time-code"
+                        :aria-invalid="!!errors.token" aria-describedby="setup-token-help" autofocus>
+                    <p v-if="errors.token" id="setup-token-help" class="field-error">{{ errors.token }}</p>
+                    <p v-else id="setup-token-help" class="hint">
+                        Printed in the gateway log at startup, or the value of <code>KAWA_SETUP_TOKEN</code>.
+                    </p>
+                </div>
+                <div class="field">
+                    <label for="setup-email">Email</label>
+                    <input id="setup-email" v-model="setup.email" class="input mono" type="email" placeholder="ops@example.com"
+                        autocomplete="username" :aria-invalid="!!errors.email">
+                    <p v-if="errors.email" class="field-error">{{ errors.email }}</p>
+                </div>
+                <div class="field">
+                    <label for="setup-password">Password</label>
+                    <input id="setup-password" v-model="setup.password" class="input" type="password" autocomplete="new-password"
+                        :aria-invalid="!!errors.password">
+                    <p v-if="errors.password" class="field-error">{{ errors.password }}</p>
+                </div>
+                <div class="field">
+                    <label for="setup-confirm-password">Confirm password</label>
+                    <input id="setup-confirm-password" v-model="setup.confirmPassword" class="input" type="password"
+                        autocomplete="new-password" :aria-invalid="!!errors.confirmPassword">
+                    <p v-if="errors.confirmPassword" class="field-error">{{ errors.confirmPassword }}</p>
+                </div>
+
+                <button type="submit" class="btn btn-primary submit" :disabled="pending">
+                    <i class="ph-duotone ph-user-plus" />
+                    {{ pending ? 'Creating…' : 'Create admin' }}
+                </button>
+
+                <p v-if="errors.form" class="error" role="alert">{{ errors.form }}</p>
+            </form>
             <form v-else class="form card" novalidate @submit.prevent="submit">
                 <div class="card-head">
                     <template v-if="confirming">
@@ -174,6 +275,8 @@ const continueAsSignedIn = async (): Promise<void> => {
                         <p>Use your kawa account to manage topics, clients and access.</p>
                     </template>
                 </div>
+
+                <p v-if="notice" class="notice" role="status">{{ notice }}</p>
 
                 <section v-if="consent && !mcp" class="consent" aria-label="Access request">
                     <p class="consent-lead">
@@ -339,6 +442,16 @@ const continueAsSignedIn = async (): Promise<void> => {
 .consent dl div { display: grid; grid-template-columns: 84px 1fr; gap: 8px; }
 .consent dt { color: var(--muted); }
 .consent dd { margin: 0; overflow-wrap: anywhere; }
+
+.notice {
+    margin: -8px 0 20px;
+    padding: 10px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    border: 1px solid color-mix(in srgb, var(--brand) 45%, transparent);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--brand) 8%, transparent);
+}
 
 .continue { display: grid; gap: 12px; justify-items: center; }
 .link {
